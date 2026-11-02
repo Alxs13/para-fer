@@ -1,7 +1,7 @@
 // Fer & Alxs v7: cachea únicamente interfaz pública.
 // Nunca intercepta, almacena ni cachea peticiones de Supabase, fotos o chat.
-const CACHE='fer-alxs-shell-v7';
-const SHELL=['./','./index.html','./galeria.css','./galeria.js','./universo-v7.js','./config.js','./pdf-native.js','./jszip.min.js','./icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
+const CACHE='fer-alxs-shell-v7-1';
+const SHELL=['./','./index.html','./galeria.css','./galeria.js','./universo-v7.js','./mejoras-v7-1.css','./mejoras-v7-1.js','./config.js','./pdf-native.js','./jszip.min.js','./icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(async c=>{for(const url of SHELL)try{await c.add(url)}catch{}}).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{

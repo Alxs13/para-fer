@@ -5,10 +5,10 @@
 <meta name="description" content="Fer & Alxs: colección privada de recuerdos, tarjetas giratorias, mensajes y cápsula del tiempo.">
 <title>Fer & Alxs · Nuestro universo</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="galeria.css?v=7.0">
-<script defer src="config.js?v=7.0"></script>
+<link rel="stylesheet" href="galeria.css?v=7.1"><link rel="stylesheet" href="mejoras-v7-1.css?v=7.1">
+<script defer src="config.js?v=7.1"></script>
 <script defer src="jszip.min.js"></script>
-<script defer src="pdf-native.js?v=7.0"></script>
+<script defer src="pdf-native.js?v=7.1"></script>
 <script>
 // Carga controlada: la aplicación se inicia solo después de tener la librería.
 // Si ambos CDN fallan, el usuario ve un diagnóstico explícito.
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
     'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js'
   ];
-  function startApp(){ const app=document.createElement('script'); app.src='galeria.js?v=7.0';app.onload=()=>{let extension=document.createElement('script');extension.src='universo-v7.js?v=7.0';document.body.appendChild(extension)}; document.body.appendChild(app); }
+  function startApp(){ const app=document.createElement('script'); app.src='galeria.js?v=7.1';app.onload=()=>{let extension=document.createElement('script');extension.src='universo-v7.js?v=7.1';extension.onload=()=>{const polish=document.createElement('script');polish.src='mejoras-v7-1.js?v=7.1';document.body.appendChild(polish)};document.body.appendChild(extension)}; document.body.appendChild(app); }
   function load(index){
     if(window.supabase || index>=urls.length){ startApp();return; }
     const script=document.createElement('script');script.src=urls[index];
@@ -47,14 +47,14 @@ document.addEventListener('DOMContentLoaded', function () {
   </section>
 
   <div id="appView" class="hidden">
-    <div class="app-topline"><div><p class="eyebrow">FER × ALXS <span class="tiny-star">✧</span> COLECCIÓN PRIVADA</p><p id="welcomeTitle" class="welcome">Bienvenidos a casa.</p></div><button id="v7Bell" class="icon-btn v7-bell" type="button" title="Actividad reciente" aria-label="Actividad reciente">✦ <span id="v7BellCount" class="hidden">0</span></button><button id="logoutBtn" class="icon-btn" type="button" aria-label="Cerrar sesión" title="Cerrar sesión">↪</button></div>
+    <div class="app-topline"><div><p class="eyebrow">FER × ALXS <span class="tiny-star">✧</span> COLECCIÓN PRIVADA</p><p id="welcomeTitle" class="welcome">Bienvenidos a casa.</p></div><button id="v71SearchOpen" class="icon-btn v71-search-open" type="button" aria-label="Buscar recuerdos" title="Buscar recuerdos"><svg class="ui-icon"><use href="#i-search"/></svg></button><button id="v7Bell" class="icon-btn v7-bell" type="button" title="Actividad reciente" aria-label="Actividad reciente">✦ <span id="v7BellCount" class="hidden">0</span></button><button id="logoutBtn" class="icon-btn" type="button" aria-label="Cerrar sesión" title="Cerrar sesión">↪</button></div>
     <span id="memberNames" class="sr-only"></span>
     <section class="page active" data-page="home" id="page-home">
       <div class="home-hero"><span class="home-kicker">NUESTRO PEQUEÑO INFINITO</span><h1>Hay momentos<br>que merecen <em>quedarse.</em></h1><p>Un rincón solo nuestro. Un lugar para volver a encontrarnos, aunque estemos lejos.</p><button class="hero-button" id="homeOpenCards" type="button">Explorar cartas <span>↗</span></button><div class="orbit-decor" aria-hidden="true"><div>♡</div></div></div>
       <div class="section-kicker-row"><h2>Tu colección</h2><button class="text-link" type="button" data-go="cards">Ver todas <span>↗</span></button></div>
       <button class="featured-card" id="featuredCard" type="button" data-go="cards"><span class="featured-image" id="featuredImage"><span class="featured-heart"><svg class="romantic-heart"><use href="#i-heart"/></svg></span></span><span class="featured-content"><small>RECUERDO DESTACADO</small><strong id="featuredTitle">Aquí comienza nuestra historia</strong><span id="featuredSubtitle">Agrega la primera fotografía para llenar este espacio de recuerdos.</span><span class="featured-cta">Abrir colección　↗</span></span></button>
       <div class="quick-grid"><button id="homeAddPhoto" class="quick-tile" type="button"><span class="tile-icon"><svg class="ui-icon"><use href="#i-plus"/></svg></span><strong>Crear carta</strong><small>Guarda un momento</small></button><button class="quick-tile" type="button" data-go="chat"><span class="tile-icon"><svg class="ui-icon"><use href="#i-chat"/></svg></span><strong>Nuestro chat</strong><small>Hablar y mandar stickers</small></button><button class="quick-tile" type="button" data-go="notes"><span class="tile-icon"><svg class="ui-icon"><use href="#i-letter"/></svg></span><strong>Mensajitos</strong><small>Escribe para Fer / Alxs</small></button><button class="quick-tile" type="button" data-go="savings"><span class="tile-icon"><svg class="ui-icon"><use href="#i-sparkles"/></svg></span><strong>Juntando sueños</strong><small>Metas y aportes de los dos</small></button><button class="quick-tile" type="button" data-go="binder"><span class="tile-icon"><svg class="ui-icon"><use href="#i-grid"/></svg></span><strong>Archivador</strong><small>Todos sus recuerdos</small></button><button class="quick-tile" type="button" data-go="backup"><span class="tile-icon"><svg class="ui-icon"><use href="#i-archive"/></svg></span><strong>Cápsula</strong><small>Respalda la historia</small></button><button class="quick-tile" id="openSurprise" type="button"><span class="tile-icon"><svg class="ui-icon"><use href="#i-sparkles"/></svg></span><strong>Sobre sorpresa</strong><small>Descubre una foto al azar</small></button></div>
-      <div class="v7-home-strip"><button data-go="today" type="button"><svg class="ui-icon"><use href="#i-sparkles"/></svg> Un día como hoy</button><button data-go="studio" type="button"><svg class="ui-icon"><use href="#i-camera"/></svg> Crear recuerdo</button><button data-go="dreams" type="button"><svg class="ui-icon"><use href="#i-heart"/></svg> Nuestros sueños</button></div>
+      <div class="v71-home-tools"><button id="v71HomeSearch" type="button"><svg class="ui-icon"><use href="#i-search"/></svg> Buscar un recuerdo</button><button id="v71HomeGuide" type="button"><svg class="ui-icon"><use href="#i-sparkles"/></svg> Cómo funciona</button></div><div class="v7-home-strip"><button data-go="today" type="button"><svg class="ui-icon"><use href="#i-sparkles"/></svg> Un día como hoy</button><button data-go="studio" type="button"><svg class="ui-icon"><use href="#i-camera"/></svg> Crear recuerdo</button><button data-go="dreams" type="button"><svg class="ui-icon"><use href="#i-heart"/></svg> Nuestros sueños</button></div>
       <div class="note-preview" id="homeNotePreview"><span>✉</span><p>Deja un mensaje y aparecerá aquí.</p></div>
     </section>
 
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </section>
     <section class="page" data-page="more" id="page-more">
       <div class="page-heading"><p class="eyebrow">NUESTRAS PEQUEÑAS COSAS</p><h1>Todo lo que <em>guardamos.</em></h1></div>
-      <div class="more-grid"><button type="button" data-go="calendar" class="more-tile"><svg class="ui-icon"><use href="#i-calendar"/></svg><strong>Calendario</strong><span>Días que guardamos recuerdos</span></button>
+      <div class="more-grid"><button id="v71WelcomeOpen" type="button" class="more-tile"><svg class="ui-icon"><use href="#i-sparkles"/></svg><strong>Bienvenida</strong><span>Cómo explorar nuestro universo</span></button><button id="v71Share" type="button" class="more-tile"><svg class="ui-icon"><use href="#i-send"/></svg><strong>Compartir enlace</strong><span>Invitar a abrir la aplicación</span></button><button type="button" data-go="calendar" class="more-tile"><svg class="ui-icon"><use href="#i-calendar"/></svg><strong>Calendario</strong><span>Días que guardamos recuerdos</span></button>
         <button type="button" data-go="binder" class="more-tile"><svg class="ui-icon"><use href="#i-grid"/></svg><strong>Archivador</strong><span>Miniaturas y colección completa</span></button>
         <button type="button" data-go="videos" class="more-tile"><svg class="ui-icon"><use href="#i-video"/></svg><strong>Videos</strong><span>Nuestros días en movimiento</span></button>
         <button type="button" data-go="chat" class="more-tile"><svg class="ui-icon"><use href="#i-chat"/></svg><strong>Chat privado</strong><span>Mensajes, respuestas y stickers</span></button><button type="button" data-go="music" class="more-tile"><svg class="ui-icon"><use href="#i-music"/></svg><strong>Nuestra música</strong><span>Playlist compartida</span></button><button type="button" data-go="notes" class="more-tile"><svg class="ui-icon"><use href="#i-letter"/></svg><strong>Mensajitos</strong><span>Cartas y recordatorios privados</span></button>
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <section class="page" data-page="backup" id="page-backup">
       <div class="page-heading"><p class="eyebrow">CÁPSULA DEL TIEMPO</p><h1>Que nada<br>se <em>pierda.</em></h1><p>Guarda tu historia en un archivo ZIP para conservar las cartas, fotografías y mensajes incluso fuera de esta web.</p></div>
       <div class="capsule-art"><span class="capsule-ring">♡</span><span class="capsule-sub">FER & ALXS · ARCHIVO DE NUESTROS DÍAS</span></div>
-      <div class="content-panel backup-content"><h2 id="backupTitle">Copia de nuestra historia</h2><p id="backupStatus" class="subtle">Revisando copias…</p><button id="backupExportBtn" class="btn-primary" type="button">↓ Descargar respaldo completo</button><div class="backup-progress hidden" id="backupProgress" aria-live="polite"><span id="backupProgressText">Preparando respaldo…</span><div class="bar"><span id="backupProgressBar"></span></div></div><div class="pdf-box">
+      <div id="v71BackupReminder" class="v71-backup-hint" role="status" hidden></div><div class="content-panel backup-content"><h2 id="backupTitle">Copia de nuestra historia</h2><p id="backupStatus" class="subtle">Revisando copias…</p><button id="backupExportBtn" class="btn-primary" type="button">↓ Descargar respaldo completo</button><div class="backup-progress hidden" id="backupProgress" aria-live="polite"><span id="backupProgressText">Preparando respaldo…</span><div class="bar"><span id="backupProgressBar"></span></div></div><div class="pdf-box">
   <p class="eyebrow">ÁLBUM PARA GUARDAR</p>
   <h3>Nuestro libro de recuerdos</h3>
   <p>Descarga un PDF privado con una página por fotografía: imagen, fecha, lugar, historia, dedicatoria y recordatorio. También incluye todos los mensajes y notas. Ideal para leer o imprimir. <strong>El ZIP sigue siendo necesario para restaurar el álbum.</strong></p>
@@ -221,5 +221,30 @@ document.addEventListener('DOMContentLoaded', function () {
 <div id="uploadOverlay" class="overlay hidden" aria-hidden="true"><div class="sheet-scrim" data-close="upload"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="uploadHeading"><div class="sheet-grabber"></div><div class="sheet-head"><div><p class="eyebrow">UNA CARTA NUEVA</p><h2 id="uploadHeading">Guardar un recuerdo</h2></div><button id="closeUpload" class="icon-btn" type="button" aria-label="Cerrar">×</button></div><div class="sheet-content"><form id="uploadForm" class="upload-form"><label class="dropzone" for="photoInput" id="dropzone"><input id="photoInput" type="file" accept="image/*" multiple><span class="drop-icon">＋</span><strong>Elegir fotografías</strong><small>Hasta 8 por vez · JPG, PNG, WEBP o GIF</small></label><div id="preview" class="preview hidden"></div><label>Título de la carta<input id="memoryTitle" maxlength="80" placeholder="El día que…"></label><label>Mensaje al frente<textarea id="bubbleText" maxlength="180" rows="2" placeholder="Una frase para recordar…"></textarea></label><div class="two-cols"><label>Fecha<input id="eventDate" type="date"></label><label>Lugar<input id="location" maxlength="90" placeholder="¿Dónde fue?"></label></div><label>Historia en el reverso<textarea id="backNote" maxlength="240" rows="3" placeholder="Lo que sentiste, lo que pasó…"></textarea></label><label>Promesa o recordatorio<input id="reminder" maxlength="140" placeholder="Volver a vivirlo…"></label><button id="uploadBtn" class="btn-primary" type="submit" disabled>Guardar en nuestra colección　♡</button><p id="uploadStatus" class="status-line" role="status"></p></form><div id="progressBox" class="backup-progress hidden" aria-live="polite"><p id="progressText">Subiendo…</p><div class="bar"><span id="progressBar"></span></div></div></div></section></div>
 <div id="surpriseOverlay" class="surprise-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="surpriseHeading"><div class="surprise-panel"><button type="button" id="closeSurprise" class="icon-btn surprise-close" aria-label="Cerrar">×</button><p class="eyebrow">UN RECUERDO PARA HOY</p><div class="surprise-envelope"><span><svg class="romantic-heart"><use href="#i-heart"/></svg></span></div><h2 id="surpriseHeading">Nuestros días merecen volver.</h2><p>Abre un sobre y descubre un recuerdo que ya guardaron en su colección.</p><button type="button" id="revealSurprise" class="btn-primary">Abrir sobre　✦</button></div></div>
 <div id="lightbox" class="lightbox hidden" aria-hidden="true"><button id="lightboxClose" type="button" class="icon-btn lightbox-close" aria-label="Cerrar">×</button><div class="lightbox-content"><img id="lightboxImg" alt="Foto de nuestra historia"><h2 id="lightboxTitle"></h2><p id="lightboxDesc"></p></div></div>
+
+<div id="v71SearchDialog" class="v71-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="v71SearchTitle" aria-hidden="true">
+  <div class="v71-backdrop" data-v71-close="search"></div>
+  <section class="v71-dialog-panel v71-search-panel">
+    <div class="v71-dialog-head"><div><span class="eyebrow">ARCHIVADOR DE RECUERDOS</span><h2 id="v71SearchTitle">Encontrar un momento.</h2></div><button type="button" id="v71SearchClose" class="v71-close" aria-label="Cerrar buscador">×</button></div>
+    <label class="v71-search-field"><svg class="ui-icon"><use href="#i-search"/></svg><input id="v71SearchInput" type="search" autocomplete="off" placeholder="Lugar, frase, canción, fecha…" aria-label="Buscar en nuestros recuerdos" maxlength="100"></label>
+    <p class="v71-hint">Busca en cartas, videos, canciones, sueños, lugares y diario, respetando los permisos de tu cuenta.</p>
+    <div id="v71SearchStatus" class="v71-status" role="status" aria-live="polite">Escribe una palabra para encontrar un recuerdo.</div>
+    <div id="v71SearchResults" class="v71-results"></div>
+  </section>
+</div>
+<div id="v71WelcomeDialog" class="v71-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="v71WelcomeTitle" aria-hidden="true">
+  <div class="v71-backdrop" data-v71-close="welcome"></div>
+  <section class="v71-dialog-panel v71-welcome-panel">
+    <button type="button" id="v71WelcomeClose" class="v71-close v71-welcome-close" aria-label="Cerrar bienvenida">×</button>
+    <div class="v71-welcome-art" aria-hidden="true"><span class="v71-orbit v71-orbit-1"></span><span class="v71-orbit v71-orbit-2"></span><svg class="v71-heart"><use href="#i-heart"/></svg><span class="v71-sparkle">✦</span></div>
+    <p class="eyebrow">UN REGALO HECHO PARA DOS</p>
+    <h2 id="v71WelcomeTitle">Para ti, <em>Fer.</em></h2>
+    <p class="v71-welcome-copy">Quería que tuviéramos un lugar al que volver incluso cuando estemos lejos. Aquí caben nuestras fotos, canciones, historias y todos esos pequeños momentos que hacen tan especial estar contigo.</p>
+    <p class="v71-welcome-signature">Con amor, Alxs</p>
+    <div class="v71-welcome-actions"><button type="button" id="v71WelcomeCards" class="btn-primary">Descubrir nuestras cartas</button><button type="button" id="v71WelcomeChat" class="btn-secondary">Abrir nuestro chat</button></div>
+  </section>
+</div>
+<div id="v71NetworkAlert" class="v71-network-alert hidden" role="status" aria-live="polite">Sin conexión. Las fotos y mensajes necesitan internet para sincronizarse.</div>
+<div id="v71UpdateAlert" class="v71-update-alert hidden" role="status"><span>Hay una versión nueva de la aplicación.</span><button id="v71UpdateNow" type="button">Actualizar</button><button id="v71UpdateLater" type="button" aria-label="Cerrar aviso de actualización">×</button></div>
 </body>
 </html>
