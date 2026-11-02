@@ -15,6 +15,10 @@
   const text = (el, value, ok = false) => {
     el.textContent = value || '';
     el.style.color = ok ? '#d7f5dd' : '';
+    if (el.id === 'statusMsg') {
+      const target = document.getElementById('uploadStatus');
+      if (target) {target.textContent = value || '';target.style.color = ok ? '#d7f5dd' : ''; }
+    }
   };
   const safe = value => (value || '').trim();
   const cut = (value, max) => safe(value).slice(0, max);
@@ -35,6 +39,9 @@
   const dropzone = $('dropzone');
 
   if (!ready || !window.supabase) {
+    cloudWarning.textContent = !ready
+      ? 'Esta copia aún no tiene la URL y la clave pública en config.js.'
+      : 'No se pudo cargar la librería de Supabase. Revisa la conexión, desactiva bloqueadores y vuelve a abrir la página.';
     show(cloudWarning);
     show(loginView);
     return;
@@ -49,7 +56,7 @@
   let photos = [];
   let currentFilter = 'all';
   let offset = 0;
-  const PAGE = 12;
+  const PAGE = 30;
   let hasMore = false;
   let busy = false;
   let sub = null;
@@ -85,6 +92,7 @@
       hide(loginView);
       show(appView);
       await Promise.all([loadPhotos(true), loadNotes()]);
+      goPage('home');
       subscribeRealtime();
     } catch (err) {
       await sb.auth.signOut().catch(() => {});
@@ -109,6 +117,7 @@
       show(loginView);
       if (sub) { sb.removeChannel(sub); sub = null; }
       if (notesSub) { sb.removeChannel(notesSub); notesSub = null; }
+      hide($('uploadOverlay'));
       return;
     }
     if (activeUser?.id !== user.id || appView.classList.contains('hidden')) await verifyAccess(user);
@@ -157,90 +166,197 @@
   $('lightboxClose').addEventListener('click', () => { hide($('lightbox')); $('lightbox').setAttribute('aria-hidden', 'true'); });
   $('lightbox').addEventListener('click', e => { if (e.target === $('lightbox')) $('lightboxClose').click(); });
 
-  function memoryCard(item) {
-    const title = item.title || 'Recuerdo especial';
-    const bubble = item.bubble_text || 'Un momento que queremos guardar para siempre. ♡';
-    const note = item.back_note || 'Sin nota extra todavía.';
-    const reminder = item.reminder || 'Sin recordatorio.';
-    const where = item.location || 'Lugar no indicado';
-    const when = item.event_date ? fmtDate(item.event_date) : 'Fecha no indicada';
+  let activeCard = 0;
+  let isLoadingPage = false;
+  let filteredPhotos = [];
+  let page = 'home';
+  const sectionNames = ['home','cards','binder','notes','backup'];
 
+  function goPage(name) {
+    if (!sectionNames.includes(name)) name = 'home';
+    page = name;
+    appView.dataset.currentPage=name;
+    document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.dataset.page === name));
+    document.querySelectorAll('.bottom-nav button[data-go]').forEach(el => {
+      const on = el.dataset.go === name;
+      el.classList.toggle('active',on);
+      if(on) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current');
+    });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (name === 'cards') scrollToCard(activeCard, false);
+  }
+  document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => goPage(btn.dataset.go)));
+  $('homeOpenCards').addEventListener('click', () => goPage('cards'));
+  const uploadOverlay = $('uploadOverlay');
+  function openUpload() {
+    show(uploadOverlay);
+    uploadOverlay.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+    $('memoryTitle').focus({preventScroll:true});
+  }
+  function closeUpload() {
+    if(busy) return;
+    hide(uploadOverlay);
+    uploadOverlay.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';
+  }
+  ['fabAdd','homeAddPhoto','binderAdd'].forEach(id => $(id).addEventListener('click',openUpload));
+  $('closeUpload').addEventListener('click',closeUpload);
+  document.querySelector('[data-close="upload"]').addEventListener('click',closeUpload);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {closeUpload();$('lightboxClose').click();}
+    else if(page==='cards' && !e.target.matches('input,textarea,select')) {
+      if(e.key==='ArrowLeft') scrollToCard(activeCard-1);
+      if(e.key==='ArrowRight') scrollToCard(activeCard+1);
+    }
+  });
+
+  const surpriseOverlay = $('surpriseOverlay');
+  $('openSurprise').addEventListener('click', () => {
+    if (!photos.length) {openUpload(); return;}
+    show(surpriseOverlay);
+    surpriseOverlay.querySelector('.surprise-panel').classList.remove('revealing');
+    $('revealSurprise').disabled=false;
+  });
+  $('closeSurprise').addEventListener('click',()=>hide(surpriseOverlay));
+  $('revealSurprise').addEventListener('click',()=>{
+    if (!photos.length) return;
+    $('revealSurprise').disabled=true;
+    surpriseOverlay.querySelector('.surprise-panel').classList.add('revealing');
+    const selected = photos[Math.floor(Math.random()*photos.length)];
+    setTimeout(()=>{
+      hide(surpriseOverlay);
+      currentFilter='all';
+      $('filters').querySelectorAll('button').forEach(b=>{const on=b.dataset.filter==='all';b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
+      renderPhotos();
+      activeCard=Math.max(0,filteredPhotos.findIndex(p=>p.id===selected.id));
+      goPage('cards');
+      scrollToCard(activeCard);
+    },650);
+  });
+
+  function memoryCard(item) {
+    const title = item.title || 'Recuerdo sin título';
+    const bubble = item.bubble_text || 'Un momento que guardamos para siempre. ♡';
+    const note = item.back_note || 'Aún sin una historia escrita.';
+    const reminder = item.reminder || 'Un recuerdo para atesorar.';
+    const where = item.location || 'Nuestro lugar secreto';
+    const when = item.event_date ? fmtDate(item.event_date) : 'Sin fecha indicada';
     const card = document.createElement('article');
     card.className = 'memory-card';
+    card.tabIndex = 0;
+    card.setAttribute('aria-label',`Carta ${title}. Toca para girar.`);
     card.innerHTML = `
       <div class="memory-card-inner">
-        <section class="memory-side memory-front">
+        <div class="memory-side memory-front">
           <div class="photo-frame">
-            ${item.signedUrl ? `<img src="${escapeHtml(item.signedUrl)}" alt="${escapeHtml(title)}" loading="lazy" />` : ''}
-            <div class="memory-topbar">
-              <span class="author-pill">♡ ${escapeHtml(authorName(item))}</span>
-              <span class="date-pill">${escapeHtml(fmtCreated(item.created_at))}</span>
-            </div>
+            ${item.signedUrl ? `<img src="${escapeHtml(item.signedUrl)}" alt="${escapeHtml(title)}" loading="lazy"/>` : '<span class="empty-heart">♡</span>'}
+            <div class="memory-topbar"><span class="author-pill">✦ ${escapeHtml(authorName(item))}</span><span class="date-pill">Nº ${String(filteredPhotos.indexOf(item) + 1).padStart(3,'0')}</span></div>
             <div class="bubble-wrap"><span class="bubble">${escapeHtml(bubble)}</span></div>
-            <span class="flip-badge">Ver reverso ↺</span>
           </div>
-          <div class="memory-content">
-            <h4 class="memory-title">${escapeHtml(title)}</h4>
-            <p class="memory-snippet">${escapeHtml(note)}</p>
-            <div class="card-actions">
-              <button type="button" class="small-btn" data-action="flip">Dar vuelta</button>
-              <button type="button" class="small-btn" data-action="zoom">Ver foto</button>
-              ${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete">Eliminar</button>' : ''}
-            </div>
+          <div class="memory-content"><h4 class="memory-title">${escapeHtml(title)}</h4><p class="memory-snippet">${escapeHtml(when)} · ${escapeHtml(where)}</p>
+            <div class="card-actions"><button type="button" class="small-btn" data-action="flip">↻ Girar carta</button><button type="button" class="small-btn" data-action="zoom">Ampliar foto</button>${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete">Eliminar</button>' : ''}</div>
           </div>
-        </section>
-        <section class="memory-side memory-back">
-          <div class="back-body">
-            <h4>${escapeHtml(title)}</h4>
-            <div class="meta-list">
-              <div class="meta-item"><b>Fecha del recuerdo</b><span>${escapeHtml(when)}</span></div>
-              <div class="meta-item"><b>Lugar</b><span>${escapeHtml(where)}</span></div>
-              <div class="meta-item"><b>Nota</b><span>${escapeHtml(note)}</span></div>
-              <div class="meta-item"><b>Recordatorio</b><span>${escapeHtml(reminder)}</span></div>
-            </div>
-            <div class="back-footer">
-              <button type="button" class="small-btn" data-action="flip">Volver al frente</button>
-              <button type="button" class="small-btn" data-action="zoom">Ver grande</button>
-              ${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete">Eliminar</button>' : ''}
-            </div>
-          </div>
-        </section>
+        </div>
+        <div class="memory-side memory-back"><div class="back-body"><h4>${escapeHtml(title)}</h4><div class="meta-list">
+          <div class="meta-item"><b>Cuándo fue</b><span>${escapeHtml(when)}</span></div>
+          <div class="meta-item"><b>Dónde estuvimos</b><span>${escapeHtml(where)}</span></div>
+          <div class="meta-item"><b>Nuestra historia</b><span>${escapeHtml(note)}</span></div>
+          <div class="meta-item"><b>Para no olvidar</b><span>${escapeHtml(reminder)}</span></div>
+          </div><div class="back-footer"><button type="button" class="small-btn" data-action="flip">↻ Volver</button><button type="button" class="small-btn" data-action="zoom">Foto</button>${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete">Eliminar</button>' : ''}</div></div></div>
       </div>`;
-
-    card.addEventListener('click', e => {
-      const btn = e.target.closest('button');
-      if (btn) return;
+    let pointerX=0;
+    card.addEventListener('pointerdown',e=>{pointerX=e.clientX;},{passive:true});
+    card.addEventListener('click',e=>{
+      if(e.target.closest('button')) return;
+      if(Math.abs(e.clientX-pointerX)>10) return;
       card.classList.toggle('is-flipped');
     });
-    card.querySelectorAll('[data-action="flip"]').forEach(btn => btn.addEventListener('click', e => {
-      e.stopPropagation();
-      card.classList.toggle('is-flipped');
-    }));
-    card.querySelectorAll('[data-action="zoom"]').forEach(btn => btn.addEventListener('click', e => {
-      e.stopPropagation();
-      lightbox(item);
-    }));
-    card.querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      await removePhoto(item);
-    }));
+    card.addEventListener('keydown',e=>{
+      if(e.target===card && (e.key==='Enter'||e.key===' ')) {e.preventDefault();card.classList.toggle('is-flipped');}
+    });
+    card.querySelectorAll('[data-action="flip"]').forEach(btn=>btn.addEventListener('click',()=>card.classList.toggle('is-flipped')));
+    card.querySelectorAll('[data-action="zoom"]').forEach(btn=>btn.addEventListener('click',()=>lightbox(item)));
+    card.querySelectorAll('[data-action="delete"]').forEach(btn=>btn.addEventListener('click',()=>removePhoto(item)));
     return card;
   }
 
+  function scrollToCard(index, animate = true) {
+    if (!filteredPhotos.length) return;
+    activeCard = Math.max(0, Math.min(index, filteredPhotos.length-1));
+    const cards = $('cardGrid').querySelectorAll('.memory-card');
+    const card = cards[activeCard];
+    if(card) {
+      const track=$('cardGrid');
+      const left=card.offsetLeft-track.offsetLeft-(track.clientWidth-card.offsetWidth)/2;
+      track.scrollTo({left:Math.max(0,left),behavior:animate?'smooth':'instant'});
+    }
+    updatePager();
+  }
+  function updatePager() {
+    const n = filteredPhotos.length;
+    $('activeCardNum').textContent = n ? String(activeCard+1) : '0';
+    $('photoCount').textContent = String(n);
+    $('prevCard').disabled = !n || activeCard === 0;
+    $('nextCard').disabled = !n || (activeCard===n-1 && !hasMore);
+    const dots=$('cardDots');dots.replaceChildren();
+    if(n>1) for(let i=0;i<Math.min(n,9);i++) {
+      const dot=document.createElement('i');dot.className=(Math.round(activeCard/Math.max(n-1,1)*Math.min(n-1,8))===i?'active':'');dots.appendChild(dot);
+    }
+    if(n && activeCard >= n-3 && hasMore && !isLoadingPage) loadPhotos(false).catch(console.warn);
+  }
+  $('prevCard').addEventListener('click',()=>scrollToCard(activeCard-1));
+  $('nextCard').addEventListener('click',()=>{
+    if(activeCard===filteredPhotos.length-1 && hasMore) loadPhotos(false).then(()=>scrollToCard(activeCard+1));
+    else scrollToCard(activeCard+1);
+  });
+  let scrollFrame=0;
+  $('cardGrid').addEventListener('scroll',()=>{
+    cancelAnimationFrame(scrollFrame);
+    scrollFrame=requestAnimationFrame(()=>{
+      const cards=[...$('cardGrid').querySelectorAll('.memory-card')];
+      if(!cards.length)return;
+      const center=$('cardGrid').getBoundingClientRect().left+$('cardGrid').clientWidth/2;
+      let best=0, dist=Infinity;
+      cards.forEach((el,i)=>{const r=el.getBoundingClientRect();const d=Math.abs(r.left+r.width/2-center);if(d<dist){dist=d;best=i;}});
+      if(best!==activeCard){activeCard=best;updatePager();}
+    });
+  },{passive:true});
+
   function renderPhotos() {
-    const grid = $('cardGrid');
-    const filtered = photos.filter(item => currentFilter === 'all' || (currentFilter === 'mine' && isMine(item)) || (currentFilter === 'theirs' && !isMine(item)));
-    grid.innerHTML = '';
-    if (!filtered.length) {
-      grid.innerHTML = `<div class="empty-state panel"><div class="empty-heart">❤</div><h4>${photos.length ? 'No hay tarjetas en este filtro.' : 'Aquí vivirán sus recuerdos'}</h4><p>${photos.length ? 'Prueba con otro filtro.' : 'Sube una foto para empezar.'}</p></div>`;
-    } else filtered.forEach(item => grid.appendChild(memoryCard(item)));
-    $('photoCount').textContent = String(photos.length);
-    $('countText').textContent = photos.length === 1 ? '1 tarjeta compartida' : `${photos.length}${hasMore ? '+' : ''} tarjetas compartidas`;
-    hasMore ? show($('loadMoreBtn')) : hide($('loadMoreBtn'));
+    const track=$('cardGrid'),binder=$('collectionGrid');
+    const beforeId=filteredPhotos[activeCard]?.id;
+    filteredPhotos=photos.filter(item=>currentFilter==='all'||(currentFilter==='mine'&&isMine(item))||(currentFilter==='theirs'&&!isMine(item)));
+    track.replaceChildren();binder.replaceChildren();
+    if(!filteredPhotos.length){
+      const empty=document.createElement('div');empty.className='empty-deck';
+      empty.innerHTML='<span class="empty-heart">♡</span><h3>Tu historia empieza aquí</h3><p>La primera foto se convertirá en una carta para compartir entre los dos.</p><button type="button">＋ Crear primera carta</button>';
+      empty.querySelector('button').addEventListener('click',openUpload);track.appendChild(empty);
+      const be=document.createElement('div');be.className='binder-empty';be.textContent='Todavía no hay cartas. Crea la primera desde el botón +.';binder.appendChild(be);
+    } else filteredPhotos.forEach((item,i)=>{
+      track.appendChild(memoryCard(item));
+      const cell=document.createElement('button');cell.className='binder-item';cell.type='button';
+      cell.innerHTML=`<span class="binder-art">${item.signedUrl?`<img src="${escapeHtml(item.signedUrl)}" alt="" loading="lazy">`:'♡'}</span><b>${escapeHtml(item.title||'Nuestro recuerdo')}</b><small>${escapeHtml(item.location||'Nuestra historia')} · ${String(i+1).padStart(3,'0')}</small>`;
+      cell.addEventListener('click',()=>{activeCard=i;goPage('cards');scrollToCard(i);});
+      binder.appendChild(cell);
+    });
+    $('countText').textContent=filteredPhotos.length===1?'1 carta de nuestra historia':`${filteredPhotos.length}${hasMore?'+':''} cartas en nuestra colección`;
+    $('binderCount').textContent=`${photos.length}${hasMore?'+':''} recuerdos guardados`;
+    hasMore?show($('loadMoreBtn')):hide($('loadMoreBtn'));
+    hasMore?show($('binderLoadMore')):hide($('binderLoadMore'));
+    activeCard=Math.max(0,filteredPhotos.findIndex(p=>p.id===beforeId));
+    updatePager();
+    if(beforeId) requestAnimationFrame(()=>scrollToCard(activeCard,false));
+    const first=photos[0];
+    $('featuredTitle').textContent=first?.title||'Aquí comienza nuestra historia';
+    $('featuredSubtitle').textContent=first ? `${first.location||'Nuestro lugar'} · ${first.event_date?fmtDate(first.event_date):'Siempre nosotros'}` : 'Agrega la primera fotografía para llenar este espacio de recuerdos.';
+    const featured=$('featuredImage');featured.querySelectorAll('img').forEach(img=>img.remove());
+    if(first?.signedUrl){const image=document.createElement('img');image.src=first.signedUrl;image.alt='Último recuerdo';featured.appendChild(image);}
   }
 
   async function loadPhotos(reset = false) {
-    if (!activeUser) return;
+    if (!activeUser || isLoadingPage) return;
+    isLoadingPage = true;
     if (reset) {
       offset = 0;
       photos = [];
@@ -251,7 +367,8 @@
       .order('created_at', { ascending: false })
       .range(offset, offset + PAGE - 1);
     if (error) {
-      text(statusMsg, `No se pudieron cargar las fotos: ${friendly(error)}`);
+      isLoadingPage = false;
+      text(statusMsg, `No se pudieron cargar las cartas: ${friendly(error)}`);
       return;
     }
     const rows = data || [];
@@ -265,9 +382,11 @@
     photos = reset ? page : photos.concat(page);
     offset += rows.length;
     hasMore = rows.length === PAGE;
+    isLoadingPage = false;
     renderPhotos();
   }
 
+  $('binderLoadMore').addEventListener('click', () => loadPhotos(false).catch(console.warn));
   $('loadMoreBtn').addEventListener('click', () => loadPhotos(false).catch(console.warn));
   $('filters').addEventListener('click', e => {
     const btn = e.target.closest('button[data-filter]');
@@ -406,6 +525,10 @@
       $('progressBar').style.width = '100%';
       text(statusMsg, files.length === 1 ? 'Foto guardada en su álbum. ♡' : 'Fotos guardadas en su álbum. ♡', true);
       await loadPhotos(true);
+      hide(uploadOverlay);
+      uploadOverlay.setAttribute('aria-hidden','true');
+      document.body.style.overflow='';
+      goPage('cards');
     } catch (err) {
       hide($('progressBox'));
       text(statusMsg, friendly(err));
@@ -480,6 +603,13 @@
       return;
     }
     notes = data || [];
+    const preview = $('homeNotePreview');
+    if (notes.length) {
+      preview.querySelector('p').textContent = notes[0].content;
+      preview.querySelector('span').textContent = notes[0].type === 'reminder' ? '⌑' : '✉';
+    } else {
+      preview.querySelector('p').textContent = 'Deja un mensaje y aparecerá aquí.';
+    }
     const grid = $('notesGrid');
     grid.replaceChildren();
     if (!notes.length) {

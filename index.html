@@ -1,280 +1,94 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#4b0f22" />
-  <meta name="description" content="Álbum mutuo de Alxs y Fernanda: fotos compartidas, mensajes, fechas y lugares." />
-  <title>Fer & Alxs · Nuestro rincón</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="./galeria.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="./config.js?v=3"></script>
-  <script defer src="./jszip.min.js"></script>
-  <script defer src="./galeria.js?v=3"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content"><meta name="theme-color" content="#260914">
+<meta name="description" content="Fer & Alxs: colección privada de recuerdos, tarjetas giratorias, mensajes y cápsula del tiempo.">
+<title>Fer & Alxs · Nuestro universo</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="galeria.css?v=4.2">
+<script defer src="config.js?v=4.2"></script>
+<script defer src="jszip.min.js"></script>
+<script>
+// Carga controlada: la aplicación se inicia solo después de tener la librería.
+// Si ambos CDN fallan, el usuario ve un diagnóstico explícito.
+document.addEventListener('DOMContentLoaded', function () {
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
+    'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js'
+  ];
+  function startApp(){ const app=document.createElement('script'); app.src='galeria.js?v=4.2'; document.body.appendChild(app); }
+  function load(index){
+    if(window.supabase || index>=urls.length){ startApp();return; }
+    const script=document.createElement('script');script.src=urls[index];
+    script.onload=function(){ if(window.supabase)startApp();else load(index+1); };
+    script.onerror=function(){load(index+1);};
+    document.head.appendChild(script);
+  }
+  load(0);
+});
+</script>
 </head>
 <body>
-  <div class="bg-orbs" aria-hidden="true">
-    <span></span><span></span><span></span><span></span>
-  </div>
-
-  <header class="topbar wrap">
-    <div class="brand">
-      <div class="brand-mark">❤</div>
-      <div>
-        <strong>Fer & Alxs</strong>
-        <small>Nuestro rincón borgoña</small>
-      </div>
+<div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+<header class="masthead">
+  <div class="brand"><span class="brand-gem">✦</span><div><strong>FER <span>&</span> ALXS</strong><small>UN UNIVERSO DE DOS</small></div></div>
+  <span class="private-tag"><span class="privacy-dot"></span> ESPACIO PRIVADO</span>
+</header>
+<main class="app-shell">
+  <div id="cloudWarning" class="system-warning hidden" role="alert"></div>
+  <section id="loginView" class="login-view hidden">
+    <div class="login-visual"><div class="portal-ring"><span class="portal-heart">♡</span></div><div class="portal-stars">✦ · ✧ · ✦</div></div>
+    <div class="login-content"><p class="eyebrow">NUESTRA HISTORIA, NUESTRAS CARTAS</p><h1>El lugar donde<br><em>siempre volvemos.</em></h1><p class="intro">Un álbum solo para nosotros. Cada recuerdo es una carta, cada mensaje una pequeña parte de nuestra historia.</p>
+      <form id="loginForm" class="login-form"><label>Tu correo<input id="email" type="email" autocomplete="email" placeholder="tu@correo.com" required></label><label>Tu contraseña<input id="password" type="password" autocomplete="current-password" placeholder="Contraseña" required></label><button id="loginBtn" class="btn-primary" type="submit">Entrar a nuestro mundo <span>↗</span></button></form><p id="loginMsg" class="status-line" role="status"></p>
     </div>
-    <a class="ghost-link" href="#album">Entrar al álbum</a>
-  </header>
+    <p class="login-foot">Hecho para dos personas. Sin desconocidos, sin ruido.</p>
+  </section>
 
-  <main>
-    <section class="hero wrap">
-      <div class="hero-copy">
-        <p class="eyebrow">ÁLBUM PRIVADO · DE LOS DOS</p>
-        <h1>Un lugar para <span>nuestros recuerdos</span></h1>
-        <p class="lead">
-          No es solo una galería. Es un espacio mutuo para ustedes dos: suben fotos,
-          dejan <strong>mensajes tipo burbuja</strong>, guardan <strong>la fecha</strong>, <strong>el lugar</strong>
-          y pequeños <strong>recordatorios</strong> para que cada recuerdo tenga alma.
-        </p>
-        <div class="hero-pills">
-          <span>Cards que se dan vuelta</span>
-          <span>Estilo burdeos / borgoña</span>
-          <span>Mensajitos y notas</span>
-          <span>Solo para ustedes dos</span>
-          <span>Respaldo y restauración</span>
-        </div>
-        <a class="primary-btn" href="#album">Abrir nuestro álbum</a>
-      </div>
-
-      <div class="hero-mockup" aria-hidden="true">
-        <div class="mock-card front">
-          <div class="mock-photo"></div>
-          <div class="mock-bubble">“Te extraño, pero este momento siempre me acompaña.”</div>
-          <div class="mock-caption">Toca para ver el reverso</div>
-        </div>
-        <div class="mock-card back">
-          <h3>Recuerdo especial</h3>
-          <ul>
-            <li><b>Fecha:</b> 14 febrero 2026</li>
-            <li><b>Lugar:</b> Antofagasta</li>
-            <li><b>Nota:</b> Primer atardecer juntos ese mes.</li>
-            <li><b>Recordatorio:</b> Volver a sacar una foto aquí.</li>
-          </ul>
-        </div>
-      </div>
+  <div id="appView" class="hidden">
+    <div class="app-topline"><div><p class="eyebrow">FER × ALXS <span class="tiny-star">✧</span> COLECCIÓN PRIVADA</p><p id="welcomeTitle" class="welcome">Bienvenidos a casa.</p></div><button id="logoutBtn" class="icon-btn" type="button" aria-label="Cerrar sesión" title="Cerrar sesión">↪</button></div>
+    <span id="memberNames" class="sr-only"></span>
+    <section class="page active" data-page="home" id="page-home">
+      <div class="home-hero"><span class="home-kicker">NUESTRO PEQUEÑO INFINITO</span><h1>Hay momentos<br>que merecen <em>quedarse.</em></h1><p>Un rincón solo nuestro. Un lugar para volver a encontrarnos, aunque estemos lejos.</p><button class="hero-button" id="homeOpenCards" type="button">Explorar cartas <span>↗</span></button><div class="orbit-decor" aria-hidden="true"><div>♡</div></div></div>
+      <div class="section-kicker-row"><h2>Tu colección</h2><button class="text-link" type="button" data-go="cards">Ver todas <span>↗</span></button></div>
+      <button class="featured-card" id="featuredCard" type="button" data-go="cards"><span class="featured-image" id="featuredImage"><span class="featured-heart">♡</span></span><span class="featured-content"><small>RECUERDO DESTACADO</small><strong id="featuredTitle">Aquí comienza nuestra historia</strong><span id="featuredSubtitle">Agrega la primera fotografía para llenar este espacio de recuerdos.</span><span class="featured-cta">Abrir colección　↗</span></span></button>
+      <div class="quick-grid"><button id="homeAddPhoto" class="quick-tile" type="button"><span class="tile-icon">＋</span><strong>Crear carta</strong><small>Guarda un momento</small></button><button class="quick-tile" type="button" data-go="notes"><span class="tile-icon">✉</span><strong>Mensajitos</strong><small>Escribe para Fer / Alxs</small></button><button class="quick-tile" type="button" data-go="binder"><span class="tile-icon">▦</span><strong>Archivador</strong><small>Todos sus recuerdos</small></button><button class="quick-tile" type="button" data-go="backup"><span class="tile-icon">⌑</span><strong>Cápsula</strong><small>Respalda la historia</small></button><button class="quick-tile" id="openSurprise" type="button"><span class="tile-icon">✧</span><strong>Sobre sorpresa</strong><small>Descubre una foto al azar</small></button></div>
+      <div class="note-preview" id="homeNotePreview"><span>✉</span><p>Deja un mensaje y aparecerá aquí.</p></div>
     </section>
 
-    <section class="features wrap">
-      <article>
-        <h3>Frente de la card</h3>
-        <p>La foto se ve grande y elegante, con una burbuja encima para el mensaje o comentario principal.</p>
-      </article>
-      <article>
-        <h3>Reverso romántico</h3>
-        <p>Al dar vuelta la tarjeta aparecen la fecha, el lugar, la nota del recuerdo y un recordatorio especial.</p>
-      </article>
-      <article>
-        <h3>Mutuo y privado</h3>
-        <p>Cada uno entra con su cuenta, sube recuerdos y ve automáticamente lo que el otro agregó.</p>
-      </article>
+    <section class="page" data-page="cards" id="page-cards">
+      <div class="page-heading"><p class="eyebrow">EL MAZO DE RECUERDOS</p><h1>Un momento<br><em>a la vez.</em></h1><p>Desliza a los lados para recorrer las cartas. Toca una para descubrir lo que hay detrás.</p></div>
+      <div class="deck-bar"><span id="countText">Cargando colección…</span><span class="deck-help">DESLIZA <b>↔</b></span></div>
+      <div id="cardGrid" class="card-grid" aria-live="polite"></div>
+      <div class="carousel-bottom"><button type="button" id="prevCard" class="circle-arrow" aria-label="Carta anterior">←</button><div><span id="activeCardNum">0</span><span class="pagination-divider"> / </span><span id="photoCount">0</span><div class="dots" id="cardDots"></div></div><button type="button" id="nextCard" class="circle-arrow" aria-label="Siguiente carta">→</button></div>
+      <div class="center"><button id="loadMoreBtn" class="btn-secondary hidden" type="button">Cargar más cartas</button></div>
+      <div id="filters" class="filters" role="group" aria-label="Filtrar cartas"><button class="active" data-filter="all" aria-pressed="true" type="button">Todas</button><button data-filter="mine" aria-pressed="false" type="button">Mis cartas</button><button data-filter="theirs" aria-pressed="false" type="button">De mi amor</button></div>
     </section>
 
-    <section id="album" class="album-section wrap">
-      <div class="section-head">
-        <p class="eyebrow">NUESTRO ÁLBUM</p>
-        <h2>Fotos que cuentan una historia</h2>
-        <p class="section-text">
-          Cada foto se transforma en una pieza viva de su relación. Pueden verla por delante,
-          girarla, leer el mensaje, recordar el lugar y dejarse una pequeña nota para el futuro.
-        </p>
-      </div>
-
-      <div id="cloudWarning" class="notice warning hidden">
-        Falta conectar la nube. Completa <code>config.js</code> con tu URL y la clave pública de Supabase.
-      </div>
-
-      <div id="loginView" class="auth-card panel hidden">
-        <div>
-          <h3>Entren a su rincón privado ♡</h3>
-          <p>Solo Alxs y Fernanda podrán entrar y ver el contenido compartido.</p>
-        </div>
-        <form id="loginForm" class="auth-form">
-          <label>
-            Correo
-            <input id="email" type="email" autocomplete="email" placeholder="correo@ejemplo.com" required />
-          </label>
-          <label>
-            Contraseña
-            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
-          </label>
-          <button id="loginBtn" class="primary-btn" type="submit">Entrar</button>
-        </form>
-        <p id="loginMsg" class="mini-msg"></p>
-      </div>
-
-      <div id="appView" class="hidden">
-        <div class="dashboard-top panel">
-          <div>
-            <p class="mini-kicker">Conectados</p>
-            <h3 id="welcomeTitle">Hola ♡</h3>
-            <p id="memberNames" class="subtle">Esperando nombres…</p>
-          </div>
-          <div class="dashboard-actions">
-            <div class="stat-pill">
-              <span id="photoCount">0</span>
-              <small>recuerdos</small>
-            </div>
-            <button id="logoutBtn" class="soft-btn" type="button">Cerrar sesión</button>
-          </div>
-        </div>
-
-        <div class="layout-grid">
-          <aside class="upload-panel panel">
-            <h3>Agregar un nuevo recuerdo</h3>
-            <p class="subtle">Puedes subir hasta 8 fotos. Cada una llevará los mismos datos de esta carga.</p>
-
-            <form id="uploadForm" class="upload-form">
-              <label class="dropzone" for="photoInput" id="dropzone">
-                <input id="photoInput" type="file" accept="image/*" multiple />
-                <span class="drop-title">Toca para elegir fotos</span>
-                <small>o arrástralas aquí</small>
-              </label>
-
-              <div id="preview" class="preview hidden"></div>
-
-              <label>
-                Título del recuerdo
-                <input id="memoryTitle" type="text" maxlength="80" placeholder="Ej: Nuestra salida al mar" />
-              </label>
-
-              <label>
-                Mensaje en burbuja (frente)
-                <textarea id="bubbleText" maxlength="180" rows="3" placeholder="Ej: Amo esta foto contigo, me da paz verla."></textarea>
-              </label>
-
-              <label>
-                Nota del reverso
-                <textarea id="backNote" maxlength="240" rows="3" placeholder="Ej: Ese día caminamos, conversamos y todo se sintió más bonito contigo."></textarea>
-              </label>
-
-              <div class="two-cols">
-                <label>
-                  Fecha del recuerdo
-                  <input id="eventDate" type="date" />
-                </label>
-                <label>
-                  Lugar
-                  <input id="location" type="text" maxlength="90" placeholder="Ej: Antofagasta" />
-                </label>
-              </div>
-
-              <label>
-                Recordatorio bonito
-                <input id="reminder" type="text" maxlength="140" placeholder="Ej: Repetir esta salida el próximo mes" />
-              </label>
-
-              <button id="uploadBtn" class="primary-btn" type="submit" disabled>Guardar en nuestro álbum</button>
-            </form>
-
-            <div id="progressBox" class="progress hidden" aria-live="polite">
-              <p id="progressText">Subiendo…</p>
-              <div class="bar"><span id="progressBar"></span></div>
-            </div>
-
-            <p id="statusMsg" class="mini-msg"></p>
-          </aside>
-
-          <section class="gallery-panel">
-            <div class="panel gallery-header">
-              <div>
-                <h3>Recuerdos compartidos</h3>
-                <p id="countText" class="subtle">Aquí aparecerán sus tarjetas.</p>
-              </div>
-              <div id="filters" class="filters" role="group" aria-label="Filtrar tarjetas">
-                <button type="button" class="active" data-filter="all" aria-pressed="true">Todas</button>
-                <button type="button" data-filter="mine" aria-pressed="false">Mías</button>
-                <button type="button" data-filter="theirs" aria-pressed="false">De Fer / tuyas</button>
-              </div>
-            </div>
-
-            <div id="cardGrid" class="card-grid panel-shell">
-              <div class="empty-state panel">
-                <div class="empty-heart">❤</div>
-                <h4>Aquí vivirán sus recuerdos</h4>
-                <p>Sube la primera foto y empezará su álbum mutuo.</p>
-              </div>
-            </div>
-
-            <div class="load-row">
-              <button id="loadMoreBtn" class="soft-btn hidden" type="button">Cargar más</button>
-            </div>
-          </section>
-        </div>
-
-        <div class="couple-extras">
-          <section class="extras-panel panel" aria-labelledby="notesTitle">
-            <div class="extras-heading"><div>
-              <p class="eyebrow">NUESTRO TABLERO</p>
-              <h3 id="notesTitle">Mensajitos y recordatorios</h3>
-              <p class="subtle">Déjense notas pequeñas, promesas y fechas que no quieran olvidar.</p>
-            </div></div>
-            <form id="noteForm" class="note-form">
-              <label>¿Qué quieres dejarle?
-                <select id="noteType" aria-label="Tipo de nota">
-                  <option value="message">Un mensajito</option>
-                  <option value="reminder">Un recordatorio</option>
-                </select>
-              </label>
-              <label>Tu mensaje
-                <textarea id="noteContent" maxlength="500" rows="3" placeholder="Escribe algo que le saque una sonrisa…" required></textarea>
-              </label>
-              <label id="noteDateLabel" class="hidden">Fecha del recordatorio
-                <input id="noteDueDate" type="date" />
-              </label>
-              <button id="noteSaveBtn" class="primary-btn" type="submit">Guardar mensajito</button>
-            </form>
-            <p id="noteStatus" class="mini-msg" role="status"></p>
-            <div id="notesGrid" class="notes-grid" aria-live="polite"></div>
-          </section>
-
-          <section class="extras-panel panel" aria-labelledby="backupTitle">
-            <p class="eyebrow">CÁPSULA DEL TIEMPO</p>
-            <h3 id="backupTitle">Nuestros recuerdos, a salvo</h3>
-            <p class="subtle">Descarga un archivo ZIP con <strong>todas</strong> las fotografías, tarjetas, fechas, lugares, mensajes y recordatorios. No depende de que el teléfono conserve la app.</p>
-            <div class="backup-illustration" aria-hidden="true"><span class="backup-heart">♥</span><span>FER × ALXS</span><small>Archivo de nuestra historia</small></div>
-            <div class="backup-status" id="backupStatus" role="status">Aún no hay una copia registrada en este dispositivo.</div>
-            <div class="backup-actions">
-              <button id="backupExportBtn" class="primary-btn" type="button">Descargar respaldo ZIP</button>
-              <div class="backup-progress hidden" id="backupProgress" aria-live="polite">
-                <span id="backupProgressText">Preparando respaldo…</span>
-                <div class="bar"><span id="backupProgressBar"></span></div>
-              </div>
-              <hr class="soft-divider" />
-              <label>Recuperar desde un ZIP de esta página
-                <input id="backupImportInput" type="file" accept=".zip,application/zip" />
-              </label>
-              <button id="backupImportBtn" class="soft-btn" type="button" disabled>Restaurar recuerdos</button>
-              <p id="backupMessage" class="mini-msg" role="status"></p>
-            </div>
-            <p class="security-note">El ZIP no está cifrado. Guarda una copia privada fuera del celular, por ejemplo en tu Drive personal. La descarga y restauración se inician manualmente; no existe un respaldo automático en segundo plano.</p>
-          </section>
-        </div>
-      </div>
+    <section class="page" data-page="binder" id="page-binder">
+      <div class="page-heading"><p class="eyebrow">ARCHIVADOR DE NUESTRA HISTORIA</p><h1>Las páginas<br>del <em>nosotros.</em></h1><p>Como un álbum de colección: toca cualquier recuerdo para verlo en grande y girar su carta.</p></div>
+      <div class="binder-head"><span id="binderCount">0 recuerdos</span><button id="binderAdd" class="btn-compact" type="button">＋ Nueva carta</button></div>
+      <div id="collectionGrid" class="binder-grid"></div><button id="binderLoadMore" class="btn-secondary hidden" type="button">Ver más recuerdos</button>
     </section>
-  </main>
 
-  <div id="lightbox" class="lightbox hidden" aria-hidden="true">
-    <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Cerrar">×</button>
-    <div class="lightbox-card">
-      <img id="lightboxImg" alt="Fotografía del recuerdo" />
-      <div class="lightbox-meta">
-        <h4 id="lightboxTitle">Recuerdo</h4>
-        <p id="lightboxDesc"></p>
-      </div>
-    </div>
+    <section class="page" data-page="notes" id="page-notes">
+      <div class="page-heading"><p class="eyebrow">CORREO ENTRE DOS</p><h1>Las palabras<br>que <em>nos quedan.</em></h1><p>Mensajes espontáneos, pequeñas promesas y recordatorios que queremos compartir.</p></div>
+      <div class="content-panel note-compose"><h2>Escribir algo bonito</h2><form id="noteForm" class="note-form"><label>Tipo de nota<select id="noteType"><option value="message">Carta / mensajito</option><option value="reminder">Recordatorio</option></select></label><label>Para mi amor<textarea id="noteContent" maxlength="500" rows="4" placeholder="Hoy quería decirte que…" required></textarea></label><label id="noteDateLabel" class="hidden">Fecha del recordatorio<input id="noteDueDate" type="date"></label><button id="noteSaveBtn" class="btn-primary" type="submit">Enviar mensajito　♡</button></form><p id="noteStatus" class="status-line" role="status"></p></div>
+      <div class="section-kicker-row"><h2>Nuestra correspondencia</h2><span class="subtle">Solo ustedes dos</span></div><div id="notesGrid" class="notes-grid"></div>
+    </section>
+
+    <section class="page" data-page="backup" id="page-backup">
+      <div class="page-heading"><p class="eyebrow">CÁPSULA DEL TIEMPO</p><h1>Que nada<br>se <em>pierda.</em></h1><p>Guarda tu historia en un archivo ZIP para conservar las cartas, fotografías y mensajes incluso fuera de esta web.</p></div>
+      <div class="capsule-art"><span class="capsule-ring">♡</span><span class="capsule-sub">FER & ALXS · ARCHIVO DE NUESTROS DÍAS</span></div>
+      <div class="content-panel backup-content"><h2 id="backupTitle">Copia de nuestra historia</h2><p id="backupStatus" class="subtle">Revisando copias…</p><button id="backupExportBtn" class="btn-primary" type="button">↓ Descargar respaldo completo</button><div class="backup-progress hidden" id="backupProgress" aria-live="polite"><span id="backupProgressText">Preparando respaldo…</span><div class="bar"><span id="backupProgressBar"></span></div></div><div class="backup-divider"></div><h3>Restaurar nuestro universo</h3><p class="subtle">Si cambias de teléfono o proyecto, puedes recuperar tus recuerdos desde un respaldo anterior.</p><label>Seleccionar respaldo ZIP<input id="backupImportInput" type="file" accept=".zip,application/zip"></label><button id="backupImportBtn" class="btn-secondary" type="button" disabled>Restaurar desde ZIP</button><p id="backupMessage" class="status-line" role="status"></p><p class="security-note">Los respaldos no están cifrados. Guárdalos en un espacio privado y en una segunda ubicación. Las copias son manuales, no automáticas.</p></div>
+    </section>
+    <div id="statusMsg" class="toast-status" role="status" aria-live="polite"></div>
+    <nav class="bottom-nav" aria-label="Navegación principal"><button type="button" class="active" data-go="home" aria-current="page"><span>⌂</span><small>Inicio</small></button><button type="button" data-go="cards"><span>▣</span><small>Cartas</small></button><button type="button" data-go="binder"><span>▦</span><small>Álbum</small></button><button type="button" data-go="notes"><span>✉</span><small>Mensajes</small></button><button type="button" data-go="backup"><span>◈</span><small>Cápsula</small></button></nav>
+    <button id="fabAdd" class="fab" type="button" aria-label="Crear una nueva carta">＋ <span>Nueva carta</span></button>
   </div>
+</main>
+
+<div id="uploadOverlay" class="overlay hidden" aria-hidden="true"><div class="sheet-scrim" data-close="upload"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="uploadHeading"><div class="sheet-grabber"></div><div class="sheet-head"><div><p class="eyebrow">UNA CARTA NUEVA</p><h2 id="uploadHeading">Guardar un recuerdo</h2></div><button id="closeUpload" class="icon-btn" type="button" aria-label="Cerrar">×</button></div><div class="sheet-content"><form id="uploadForm" class="upload-form"><label class="dropzone" for="photoInput" id="dropzone"><input id="photoInput" type="file" accept="image/*" multiple><span class="drop-icon">＋</span><strong>Elegir fotografías</strong><small>Hasta 8 por vez · JPG, PNG, WEBP o GIF</small></label><div id="preview" class="preview hidden"></div><label>Título de la carta<input id="memoryTitle" maxlength="80" placeholder="El día que…"></label><label>Mensaje al frente<textarea id="bubbleText" maxlength="180" rows="2" placeholder="Una frase para recordar…"></textarea></label><div class="two-cols"><label>Fecha<input id="eventDate" type="date"></label><label>Lugar<input id="location" maxlength="90" placeholder="¿Dónde fue?"></label></div><label>Historia en el reverso<textarea id="backNote" maxlength="240" rows="3" placeholder="Lo que sentiste, lo que pasó…"></textarea></label><label>Promesa o recordatorio<input id="reminder" maxlength="140" placeholder="Volver a vivirlo…"></label><button id="uploadBtn" class="btn-primary" type="submit" disabled>Guardar en nuestra colección　♡</button><p id="uploadStatus" class="status-line" role="status"></p></form><div id="progressBox" class="backup-progress hidden" aria-live="polite"><p id="progressText">Subiendo…</p><div class="bar"><span id="progressBar"></span></div></div></div></section></div>
+<div id="surpriseOverlay" class="surprise-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="surpriseHeading"><div class="surprise-panel"><button type="button" id="closeSurprise" class="icon-btn surprise-close" aria-label="Cerrar">×</button><p class="eyebrow">UN RECUERDO PARA HOY</p><div class="surprise-envelope"><span>♡</span></div><h2 id="surpriseHeading">Nuestros días merecen volver.</h2><p>Abre un sobre y descubre un recuerdo que ya guardaron en su colección.</p><button type="button" id="revealSurprise" class="btn-primary">Abrir sobre　✦</button></div></div>
+<div id="lightbox" class="lightbox hidden" aria-hidden="true"><button id="lightboxClose" type="button" class="icon-btn lightbox-close" aria-label="Cerrar">×</button><div class="lightbox-content"><img id="lightboxImg" alt="Foto de nuestra historia"><h2 id="lightboxTitle"></h2><p id="lightboxDesc"></p></div></div>
 </body>
 </html>
