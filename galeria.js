@@ -62,6 +62,7 @@
   let sub = null;
   let notes = [];
   let notesSub = null;
+  let extraSub = null;
 
   const friendly = err => {
     const msg = String(err?.message || err || 'Error inesperado.');
@@ -117,6 +118,10 @@
       show(loginView);
       if (sub) { sb.removeChannel(sub); sub = null; }
       if (notesSub) { sb.removeChannel(notesSub); notesSub = null; }
+      if (extraSub) { sb.removeChannel(extraSub); extraSub = null; }
+      songs=[]; videos=[]; calendarPhotos=[];
+      $('musicPlayer').replaceChildren(); $('musicPlayer').classList.add('hidden');
+      $('videoGrid').replaceChildren();
       hide($('uploadOverlay'));
       return;
     }
@@ -149,6 +154,10 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'couple_photos' }, () => {
         if (activeUser && !busy) loadPhotos(true).catch(console.warn);
       }).subscribe();
+    extraSub=sb.channel('couple-extras-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'couple_songs'},()=>{if(activeUser)loadSongs().catch(console.warn);})
+      .on('postgres_changes',{event:'*',schema:'public',table:'couple_videos'},()=>{if(activeUser)loadVideos().catch(console.warn);})
+      .subscribe();
     notesSub = sb.channel('couple-notes-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'couple_notes' }, () => {
         if (activeUser && !busy) loadNotes().catch(console.warn);
@@ -170,7 +179,7 @@
   let isLoadingPage = false;
   let filteredPhotos = [];
   let page = 'home';
-  const sectionNames = ['home','cards','binder','notes','backup'];
+  const sectionNames = ['home','cards','binder','notes','backup','calendar','music','videos','more'];
 
   function goPage(name) {
     if (!sectionNames.includes(name)) name = 'home';
@@ -184,6 +193,9 @@
     });
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (name === 'cards') scrollToCard(activeCard, false);
+    if(name === 'calendar') loadCalendar().catch(e=>text($('calendarDetails'),friendly(e)));
+    if(name === 'music') { populateSongPhotos(); loadSongs().catch(e=>text($('musicStatus'),friendly(e))); }
+    if(name === 'videos') loadVideos().catch(e=>text($('videoStatus'),friendly(e)));
   }
   document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => goPage(btn.dataset.go)));
   $('homeOpenCards').addEventListener('click', () => goPage('cards'));
@@ -351,6 +363,7 @@
     $('featuredTitle').textContent=first?.title||'Aquí comienza nuestra historia';
     $('featuredSubtitle').textContent=first ? `${first.location||'Nuestro lugar'} · ${first.event_date?fmtDate(first.event_date):'Siempre nosotros'}` : 'Agrega la primera fotografía para llenar este espacio de recuerdos.';
     const featured=$('featuredImage');featured.querySelectorAll('img').forEach(img=>img.remove());
+    populateSongPhotos();
     if(first?.signedUrl){const image=document.createElement('img');image.src=first.signedUrl;image.alt='Último recuerdo';featured.appendChild(image);}
   }
 
@@ -525,6 +538,7 @@
       $('progressBar').style.width = '100%';
       text(statusMsg, files.length === 1 ? 'Foto guardada en su álbum. ♡' : 'Fotos guardadas en su álbum. ♡', true);
       await loadPhotos(true);
+      calendarPhotos=[];
       hide(uploadOverlay);
       uploadOverlay.setAttribute('aria-hidden','true');
       document.body.style.overflow='';
@@ -647,6 +661,179 @@
     } finally { $('noteSaveBtn').disabled = false; }
   });
 
+  // ─── CALENDARIO DE RECUERDOS ─────────────────────────────────────────────
+  let calendarPhotos = [];
+  let calDate = new Date();
+  let selectedCalDate = '';
+  function photoDay(row) {
+    return row.event_date || new Intl.DateTimeFormat('en-CA', {timeZone:'America/Santiago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(row.created_at));
+  }
+  async function loadCalendar() {
+    if(!activeUser)return;
+    calendarPhotos=await fetchAll('couple_photos','id,title,event_date,created_at,location,bubble_text');
+    renderCalendar();
+  }
+  function renderCalendar() {
+    const y=calDate.getFullYear(),m=calDate.getMonth();
+    $('calMonth').textContent = new Intl.DateTimeFormat('es-CL',{month:'long',year:'numeric'}).format(new Date(y,m,1));
+    const grid=$('calendarGrid');grid.replaceChildren();
+    for(const day of ['L','M','M','J','V','S','D']){const head=document.createElement('span');head.className='day-head';head.textContent=day;grid.append(head);}
+    const start=(new Date(y,m,1).getDay()+6)%7, days=new Date(y,m+1,0).getDate();
+    const photoDays = new Set(calendarPhotos.map(photoDay));
+    const noteDays = new Set(notes.filter(n=>n.type==='reminder'&&n.due_date).map(n=>n.due_date));
+    for(let i=0;i<start;i++){const blank=document.createElement('span');blank.className='calendar-blank';grid.append(blank);}
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    for(let i=1;i<=days;i++){
+      const date = `${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+      const btn=document.createElement('button');btn.type='button';btn.className='day-cell';btn.dataset.date=date;
+      if(date===today)btn.classList.add('today');
+      if(date===selectedCalDate)btn.classList.add('selected');
+      const number=document.createElement('span');number.textContent=String(i);btn.append(number);
+      const marks=document.createElement('span');marks.className='day-marks';
+      if(photoDays.has(date)){const dot=document.createElement('i');dot.className='memory-dot';marks.append(dot);}
+      if(noteDays.has(date)){const dot=document.createElement('i');dot.className='reminder-dot';marks.append(dot);}
+      btn.append(marks);btn.addEventListener('click',()=>{selectedCalDate=date;renderCalendar();});grid.append(btn);
+    }
+    const detail=$('calendarDetails');detail.replaceChildren();
+    if(!selectedCalDate){const p=document.createElement('p');p.textContent='Toca un día para descubrir recuerdos y recordatorios.';detail.append(p);return;}
+    const matches=calendarPhotos.filter(p=>photoDay(p)===selectedCalDate);
+    const reminders=notes.filter(n=>n.type==='reminder'&&n.due_date===selectedCalDate);
+    const title=document.createElement('h3');title.textContent=fmtDate(selectedCalDate);detail.append(title);
+    if(!matches.length&&!reminders.length){const p=document.createElement('p');p.textContent='Un día esperando su primer recuerdo.';detail.append(p);}
+    for(const p of matches){const div=document.createElement('div');div.className='day-memory';const b=document.createElement('b');b.textContent=p.title||'Nuestro recuerdo';const small=document.createElement('small');small.textContent=[p.location,p.bubble_text].filter(Boolean).join(' · ');div.append(b,small);detail.append(div);}
+    for(const n of reminders){const div=document.createElement('div');div.className='day-memory note-memory';div.textContent='Recordatorio: '+n.content;detail.append(div);}
+  }
+  $('calPrev').addEventListener('click',()=>{calDate=new Date(calDate.getFullYear(),calDate.getMonth()-1,1);selectedCalDate='';renderCalendar();});
+  $('calNext').addEventListener('click',()=>{calDate=new Date(calDate.getFullYear(),calDate.getMonth()+1,1);selectedCalDate='';renderCalendar();});
+
+  // ─── PLAYLIST MUTUA CON YOUTUBE ─────────────────────────────────────────
+  let songs=[];
+  function youtubeId(raw) {
+    try {
+      const url=new URL(raw);
+      if(url.protocol!=='https:')return null;
+      const host=url.hostname.toLowerCase().replace(/^www\./,'');
+      let id='';
+      if(host==='youtu.be')id=url.pathname.slice(1).split('/')[0];
+      else if(['youtube.com','m.youtube.com','music.youtube.com','youtube-nocookie.com'].includes(host)){
+        if(url.pathname==='/watch')id=url.searchParams.get('v')||'';
+        else if(/^\/(shorts|embed|live)\//.test(url.pathname))id=url.pathname.split('/')[2]||'';
+      }
+      return /^[A-Za-z0-9_-]{11}$/.test(id)?id:null;
+    }catch{return null;}
+  }
+  function populateSongPhotos(){
+    const select=$('songPhoto');if(!select)return;
+    const selected=select.value;
+    select.replaceChildren(new Option('Sin foto asociada',''));
+    for(const p of photos){select.add(new Option(p.title||'Recuerdo sin título',p.id));}
+    select.value=photos.some(p=>p.id===selected)?selected:'';
+  }
+  $('youtubeFind').addEventListener('click',()=>{
+    const query=$('youtubeSearch').value.trim();
+    if(!query)return text($('musicStatus'),'Escribe el artista o la canción que buscas.');
+    window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(query),'_blank','noopener,noreferrer');
+    text($('musicStatus'),'Copia el enlace de la canción desde YouTube y pégalo abajo.',true);
+  });
+  async function loadSongs(){
+    if(!activeUser)return;
+    const {data,error}=await sb.from('couple_songs').select('id,user_id,title,artist,dedication,youtube_id,photo_id,created_at').order('created_at',{ascending:false}).limit(500);
+    if(error)throw new Error('La playlist aún no está lista. Ejecuta 03_ampliar_universo.sql en Supabase. '+friendly(error));
+    songs=data||[];renderSongs();
+  }
+  function renderSongs(){
+    $('songCount').textContent=`${songs.length} ${songs.length===1?'canción':'canciones'}`;
+    const box=$('songList');box.replaceChildren();
+    if(!songs.length){const p=document.createElement('p');p.className='empty-library';p.textContent='Todavía no hay canciones. Agrega la primera para construir su banda sonora.';box.append(p);return;}
+    for(const [i,song] of songs.entries()){
+      const item=document.createElement('article');item.className='song-item';
+      item.innerHTML=`<span class="song-number">${String(i+1).padStart(2,'0')}</span><div class="song-lines"><strong>${escapeHtml(song.title)}</strong><small>${escapeHtml(song.artist||'Nuestro tema')}</small>${song.dedication?`<p>“${escapeHtml(song.dedication)}”</p>`:''}</div>`;
+      const actions=document.createElement('div');actions.className='song-actions';
+      const play=document.createElement('button');play.type='button';play.className='small-btn';play.textContent='Escuchar';play.addEventListener('click',()=>playSong(song));actions.append(play);
+      if(isMine(song)){const del=document.createElement('button');del.type='button';del.className='small-btn danger';del.textContent='Quitar';del.addEventListener('click',async()=>{if(!confirm('¿Quitar esta canción de nuestra playlist?'))return;const {error}=await sb.from('couple_songs').delete().eq('id',song.id).eq('user_id',activeUser.id);if(error)text($('musicStatus'),friendly(error));else await loadSongs();});actions.append(del);}
+      item.append(actions);box.append(item);
+    }
+  }
+  function playSong(song){
+    const box=$('musicPlayer');show(box);box.replaceChildren();
+    const title=document.createElement('h3');title.textContent=song.title+' · '+(song.artist||'Nuestra canción');box.append(title);
+    const frame=document.createElement('iframe');frame.title='Reproductor de YouTube: '+song.title;
+    frame.src=`https://www.youtube-nocookie.com/embed/${song.youtube_id}?rel=0`;
+    frame.referrerPolicy='strict-origin-when-cross-origin';frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';frame.allowFullscreen=true;frame.loading='lazy';box.append(frame);
+    if(song.dedication){const note=document.createElement('p');note.textContent='“'+song.dedication+'”';box.append(note);}
+    const open=document.createElement('a');open.href=`https://www.youtube.com/watch?v=${song.youtube_id}`;open.target='_blank';open.rel='noopener noreferrer';open.textContent='Abrir en YouTube';box.append(open);
+    const related=photos.find(p=>p.id===song.photo_id);
+    if(related){const btn=document.createElement('button');btn.type='button';btn.className='small-btn';btn.textContent='Ver el recuerdo relacionado';btn.addEventListener('click',()=>{currentFilter='all';renderPhotos();const idx=filteredPhotos.findIndex(p=>p.id===related.id);activeCard=Math.max(0,idx);goPage('cards');scrollToCard(activeCard);});box.append(btn);}
+    box.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  $('musicForm').addEventListener('submit',async e=>{
+    e.preventDefault();if(!activeUser)return;
+    const id=youtubeId($('songUrl').value.trim());if(!id)return text($('musicStatus'),'Pega un enlace válido de YouTube (video, Shorts o youtu.be).');
+    $('songSave').disabled=true;
+    try{
+      const {error}=await sb.from('couple_songs').insert({user_id:activeUser.id,title:cut($('songTitle').value,100),artist:cut($('songArtist').value,90),dedication:cut($('songDedication').value,300),youtube_id:id,photo_id:$('songPhoto').value||null});
+      if(error)throw error;$('musicForm').reset();text($('musicStatus'),'Canción agregada a nuestra playlist.',true);await loadSongs();
+    }catch(err){text($('musicStatus'),friendly(err)+' — Si faltan tablas, ejecuta 03_ampliar_universo.sql.');}
+    finally{$('songSave').disabled=false;}
+  });
+
+  // ─── VIDEOTECA PRIVADA ─────────────────────────────────────────────────
+  const VIDEO_BUCKET='fer-alxs-videos';
+  let videos=[];
+  async function loadVideos(){
+    if(!activeUser)return;
+    const {data,error}=await sb.from('couple_videos').select('id,user_id,storage_path,title,note,event_date,location,created_at').order('created_at',{ascending:false}).limit(100);
+    if(error)throw new Error('La videoteca aún no está lista. Ejecuta 03_ampliar_universo.sql. '+friendly(error));
+    videos=data||[];renderVideos();
+  }
+  function renderVideos(){
+    $('videoCount').textContent=`${videos.length} ${videos.length===1?'video':'videos'}`;
+    const grid=$('videoGrid');grid.replaceChildren();
+    if(!videos.length){const p=document.createElement('p');p.className='empty-library';p.textContent='Los videos que suban aparecerán aquí. Puedes guardar clips MP4 y WEBM.';grid.append(p);return;}
+    for(const row of videos){
+      const card=document.createElement('article');card.className='video-card';
+      const art=document.createElement('div');art.className='video-art';art.innerHTML='<svg class="ui-icon"><use href="#i-video"/></svg>';card.append(art);
+      const info=document.createElement('div');info.className='video-details';
+      const title=document.createElement('h3');title.textContent=row.title;
+      const meta=document.createElement('p');meta.textContent=[row.event_date?fmtDate(row.event_date):'',row.location,memberName(row.user_id)].filter(Boolean).join(' · ');
+      info.append(title,meta);
+      if(row.note){const note=document.createElement('p');note.className='video-note';note.textContent=row.note;info.append(note);}
+      const play=document.createElement('button');play.className='small-btn';play.textContent='Reproducir video';
+      play.addEventListener('click',async()=>{
+        play.disabled=true;play.textContent='Abriendo video…';
+        const {data,error}=await sb.storage.from(VIDEO_BUCKET).createSignedUrl(row.storage_path,3600);
+        if(error||!data?.signedUrl){text($('videoStatus'),friendly(error||'No se pudo abrir'));play.disabled=false;play.textContent='Reproducir video';return;}
+        const video=document.createElement('video');video.controls=true;video.playsInline=true;video.preload='metadata';video.src=data.signedUrl;video.className='video-player';art.replaceChildren(video);video.play().catch(()=>{});
+        play.textContent='Actualizar video';play.disabled=false;
+      });info.append(play);
+      if(isMine(row)){const del=document.createElement('button');del.className='small-btn danger';del.textContent='Eliminar mi video';del.addEventListener('click',async()=>{
+        if(!confirm('¿Eliminar este video de nuestra videoteca?'))return;
+        const {error}=await sb.from('couple_videos').delete().eq('id',row.id).eq('user_id',activeUser.id);
+        if(error){text($('videoStatus'),friendly(error));return;}
+        await sb.storage.from(VIDEO_BUCKET).remove([row.storage_path]).catch(()=>{});await loadVideos();
+      });info.append(del);}
+      card.append(info);grid.append(card);
+    }
+  }
+  $('videoForm').addEventListener('submit',async e=>{
+    e.preventDefault();if(!activeUser)return;
+    const file=$('videoFile').files?.[0];if(!file)return text($('videoStatus'),'Selecciona un video.');
+    const mime=file.type==='video/mp4'?'video/mp4':file.type==='video/webm'?'video/webm':null;
+    if(!mime)return text($('videoStatus'),'Usa un archivo MP4 o WEBM.');
+    if(file.size>45*1024*1024)return text($('videoStatus'),'Máximo 45 MB por video; recorta el archivo desde la galería de tu celular.');
+    $('videoSave').disabled=true;
+    try{
+      text($('videoStatus'),'Subiendo video a la nube privada. Mantén la página abierta…');
+      const ext=mime==='video/mp4'?'mp4':'webm';
+      const path=`${activeUser.id}/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;
+      const {error:upErr}=await sb.storage.from(VIDEO_BUCKET).upload(path,file,{contentType:mime,upsert:false});if(upErr)throw upErr;
+      const {error:dbErr}=await sb.from('couple_videos').insert({user_id:activeUser.id,storage_path:path,title:cut($('videoTitle').value,100),note:cut($('videoNote').value,300),event_date:$('videoDate').value||null,location:cut($('videoLocation').value,90)});
+      if(dbErr){await sb.storage.from(VIDEO_BUCKET).remove([path]).catch(()=>{});throw dbErr;}
+      $('videoForm').reset();text($('videoStatus'),'Video guardado para ambos.',true);await loadVideos();
+    }catch(err){text($('videoStatus'),friendly(err)+' Comprueba que ejecutaste 03_ampliar_universo.sql y que el video no supera el límite global de Storage.');}
+    finally{$('videoSave').disabled=false;}
+  });
+
   // ─── CÁPSULA DEL TIEMPO: RESPALDO TOTAL Y RESTAURACIÓN ───────────────
   // La exportación siempre consulta TODAS las filas de la nube: no solo las
   // tarjetas cargadas en la pantalla. Si falla alguna foto, no descarga un ZIP
@@ -691,7 +878,7 @@
 
   function fileExtension(path) {
     const ext = (String(path).split('.').pop() || 'jpg').toLowerCase();
-    return ['jpg','jpeg','webp','png','gif'].includes(ext) ? ext : 'jpg';
+    return ['jpg','jpeg','webp','png','gif','mp4','webm'].includes(ext) ? ext : 'jpg';
   }
 
   function downloadBlob(blob, filename) {
@@ -710,6 +897,61 @@
   const pictureFields = 'id,user_id,storage_path,title,bubble_text,back_note,location,event_date,reminder,created_at,original_author_name,backup_source_id';
   const noteFields = 'id,user_id,type,content,due_date,created_at,original_author_name,backup_source_id';
 
+  // PDF de lectura/impresión: usa las mismas reglas privadas del álbum, pero
+  // NO reemplaza el ZIP, que contiene los datos necesarios para restaurar.
+  $('pdfExportBtn').addEventListener('click', async () => {
+    if (!activeUser || busy) return;
+    if (!window.FerPDF) return text($('pdfExportMessage'), 'No se cargó el generador PDF local. Actualiza la página.');
+    busy = true;
+    $('pdfExportBtn').disabled = true;
+    $('backupExportBtn').disabled = true;
+    $('backupImportBtn').disabled = true;
+    try {
+      text($('pdfExportMessage'), 'Consultando todas las fotografías y mensajes privados…');
+      backupProgress('Preparando el libro de recuerdos…', .02);
+      const [allPhotos, allNotes] = await Promise.all([
+        fetchAll('couple_photos', pictureFields),
+        fetchAll('couple_notes', noteFields)
+      ]);
+      if (allPhotos.length + allNotes.length === 0) throw new Error('Todavía no hay recuerdos o mensajes para exportar.');
+      const byId = Object.fromEntries(members.map(m => [m.user_id, m.display_name]));
+      const rows = allPhotos.map(r => ({
+        ...r, original_author_name:r.original_author_name || byId[r.user_id] || 'Mi amor'
+      }));
+      const notes = allNotes.map(r => ({
+        ...r, author:r.original_author_name || byId[r.user_id] || 'Mi amor'
+      }));
+      if (rows.length > 80 && !confirm(`El álbum contiene ${rows.length} fotografías. Un PDF tan grande puede consumir mucha memoria en el celular. ¿Continuar?`)) {
+        text($('pdfExportMessage'), 'Exportación cancelada. Puedes usar el ZIP como respaldo completo.');
+        return;
+      }
+      const pdf = await window.FerPDF.create({
+        photos:rows,notes,
+        progress:(label,fraction)=>{
+          backupProgress(label,.03+fraction*.95);
+          text($('pdfExportMessage'),label);
+        },
+        loadPhoto: async row => {
+          const {data,error} = await sb.storage.from(BUCKET).download(row.storage_path);
+          if(error || !data) throw new Error(`No se pudo obtener «${row.title||'Recuerdo'}» desde la nube: ${friendly(error || '')}`);
+          return data;
+        }
+      });
+      if(pdf.size < 300)throw new Error('La generación produjo un archivo vacío.');
+      downloadBlob(pdf, `Fer-y-Alxs_libro-de-recuerdos_${asDate()}.pdf`);
+      backupProgress('Se inició la descarga del libro PDF.',1);
+      text($('pdfExportMessage'),`Se inició la descarga del PDF: ${allPhotos.length} fotos y ${allNotes.length} notas. Comprueba que esté en Descargas. Conserva además tu ZIP para restaurar el álbum.`,true);
+    } catch (err) {
+      hide($('backupProgress'));
+      text($('pdfExportMessage'),`No se pudo generar el PDF: ${friendly(err)}`);
+    } finally {
+      busy = false;
+      $('pdfExportBtn').disabled = false;
+      $('backupExportBtn').disabled = false;
+      $('backupImportBtn').disabled = !$('backupImportInput').files.length;
+    }
+  });
+
   $('backupExportBtn').addEventListener('click', async () => {
     if (!activeUser || busy) return;
     if (!window.JSZip) return text($('backupMessage'), 'No se pudo cargar la herramienta ZIP. Verifica internet y recarga la página.');
@@ -723,13 +965,17 @@
         fetchAll('couple_photos', pictureFields),
         fetchAll('couple_notes', noteFields)
       ]);
+      const [allVideos,allSongs]=await Promise.all([
+        fetchAll('couple_videos','id,user_id,storage_path,title,note,location,event_date,created_at,backup_source_id,original_author_name'),
+        fetchAll('couple_songs','id,user_id,title,artist,dedication,youtube_id,photo_id,created_at,backup_source_id,original_author_name')
+      ]);
       const zip = new JSZip();
       const people = Object.fromEntries(members.map(m => [m.user_id, m.display_name]));
       const manifest = {
-        format: 'fer-alxs-backup', version: 2,
+        format: 'fer-alxs-backup', version: 3,
         exported_at: new Date().toISOString(),
         members: members.map(m => ({ user_id: m.user_id, display_name:m.display_name })),
-        photos: [], notes: []
+        photos: [], notes: [], songs:[], videos:[]
       };
       const human = ['FER & ALXS · CÁPSULA DEL TIEMPO', `Exportado el ${new Date().toLocaleString('es-CL')}`, ''];
       for (const [index, row] of allPhotos.entries()) {
@@ -748,6 +994,25 @@
         manifest.notes.push({ ...row, author });
         human.push(`${row.type === 'reminder' ? 'RECORDATORIO' : 'MENSAJE'}: ${row.content}`, `Autor: ${author}`, `Fecha: ${row.due_date || 'sin fecha'}`, '');
       }
+      for(const song of allSongs){
+        manifest.songs.push(song);
+        human.push(`CANCIÓN: ${song.title} — ${song.artist||''}`,`YouTube: https://www.youtube.com/watch?v=${song.youtube_id}`,`Dedicatoria: ${song.dedication||''}`,'');
+      }
+      // Los videos pueden ser grandes. Evita agotar la memoria del celular generando archivos gigantes.
+      let videoBytes=0;
+      for(const [index,row] of allVideos.entries()){
+        backupProgress(`Descargando video ${index+1} de ${allVideos.length}…`,.78+.08*(index+1)/Math.max(1,allVideos.length));
+        const {data:videoBlob,error}=await sb.storage.from(VIDEO_BUCKET).download(row.storage_path);
+        if(error||!videoBlob)throw new Error(`No se pudo respaldar el video «${row.title}». ${friendly(error||'')}`);
+        videoBytes+=videoBlob.size;
+        if(videoBytes > 250*1024*1024)throw new Error('Los videos juntos superan 250 MB. Para no colgar el teléfono, exporta los videos por separado antes de intentar un ZIP completo en un computador. No se generó un respaldo incompleto.');
+        const ext=fileExtension(row.storage_path);
+        const file=`videos/${row.id}.${ext}`;
+        zip.file(file,videoBlob);
+        const {storage_path,...meta}=row;
+        manifest.videos.push({...meta,file,author:row.original_author_name||people[row.user_id]||'Mi amor'});
+        human.push(`VIDEO: ${row.title}`,`Fecha: ${row.event_date||'sin fecha'}`,`Lugar: ${row.location||''}`,`Nota: ${row.note||''}`,`Archivo: ${file}`,'');
+      }
       zip.file('respaldo.json', JSON.stringify(manifest, null, 2));
       zip.file('NUESTROS_RECUERDOS.txt', human.join('\n'));
       zip.file('LEEME.txt', 'FER & ALXS — RESPALDO PRIVADO\n\nEste ZIP contiene fotografías y datos personales. No lo compartas públicamente.\n\nPara restaurarlo: entra a la web con una de las dos cuentas, abre Cápsula del tiempo, elige este ZIP y pulsa Restaurar recuerdos.\n\nEl archivo respaldo.json tiene el contenido estructurado. Puedes leer NUESTROS_RECUERDOS.txt aunque ya no tengas la web.\n\nLos archivos originales de la nube fueron optimizados al subirlos; esta copia conserva esas imágenes, no el original sin comprimir de la cámara.\n');
@@ -760,7 +1025,7 @@
       try { localStorage.setItem(BACKUP_KEY, new Date().toISOString()); } catch (_) {}
       backupStatus();
       backupProgress('Descarga iniciada. Verifica el archivo en Descargas.', 1);
-      text($('backupMessage'), `Se inició la descarga del ZIP: ${allPhotos.length} fotos y ${allNotes.length} mensajitos/recordatorios. Guarda otra copia en un lugar privado.`, true);
+      text($('backupMessage'), `Se inició la descarga del ZIP: ${allPhotos.length} fotos, ${allVideos.length} videos, ${allSongs.length} canciones y ${allNotes.length} notas. Guarda otra copia privada.`, true);
     } catch(err) {
       text($('backupMessage'), `No se pudo completar el respaldo: ${friendly(err)}`);
       hide($('backupProgress'));
@@ -798,15 +1063,22 @@
       const rawJson = await manifestFile.async('string');
       if (rawJson.length > 8 * 1024 * 1024) throw new Error('El registro del respaldo es demasiado grande.');
       const data = JSON.parse(rawJson);
-      if (data.format !== 'fer-alxs-backup' || data.version !== 2 || !Array.isArray(data.photos) || !Array.isArray(data.notes)) throw new Error('Formato de respaldo incompatible.');
+      if (data.format !== 'fer-alxs-backup' || ![2,3].includes(data.version) || !Array.isArray(data.photos) || !Array.isArray(data.notes)) throw new Error('Formato de respaldo incompatible.');
       if (data.photos.length > 5000 || data.notes.length > 10000) throw new Error('El ZIP supera los límites de restauración desde esta web.');
+      if(data.version===3 && (!Array.isArray(data.songs)||!Array.isArray(data.videos)))throw new Error('El respaldo nuevo no tiene sección de canciones o videos.');
+      if((data.videos||[]).length>1000||(data.songs||[]).length>10000)throw new Error('Demasiados videos o canciones para restaurar desde un celular.');
+      for(const row of (data.videos||[])){
+        if(!validSourceId(row.id)||!new RegExp(`^videos/${row.id}\\.(mp4|webm)$`,'i').test(row.file)||!zip.file(row.file))throw new Error('Archivo de video faltante o inválido en respaldo.');
+        if(zip.file(row.file)?._data?.uncompressedSize>45*1024*1024)throw new Error('Video mayor de 45 MB en respaldo.');
+      }
+      for(const row of (data.songs||[])){if(!validSourceId(row.id)||!/^[A-Za-z0-9_-]{11}$/.test(row.youtube_id))throw new Error('Enlace YouTube inválido en respaldo.');}
       for (const row of data.photos) {
         if (!validSourceId(row.id) || !validPhotoPath(row.file, row.id) || !zip.file(row.file)) throw new Error('Hay una foto faltante o una referencia no válida en el ZIP.');
         const entry = zip.file(row.file);
         if (entry?._data?.uncompressedSize > 9 * 1024 * 1024) throw new Error('El ZIP contiene una fotografía demasiado grande.');
       }
       for (const row of data.notes) if (!validSourceId(row.id) || !['message','reminder'].includes(row.type) || typeof row.content !== 'string' || row.content.length > 500) throw new Error('El ZIP contiene una nota incompatible.');
-      if (!window.confirm(`Este ZIP contiene ${data.photos.length} fotos y ${data.notes.length} mensajes/recordatorios.\n\nSe recuperarán los que aún no existan, usando tu cuenta como responsable de la restauración. Los nombres originales se conservarán como autores.\n\n¿Quieres continuar?`)) {
+      if (!window.confirm(`Este ZIP contiene ${data.photos.length} fotos, ${(data.videos||[]).length} videos, ${(data.songs||[]).length} canciones y ${data.notes.length} notas.\n\nSe recuperarán los que aún no existan, usando tu cuenta como responsable de la restauración. Los nombres originales se conservarán como autores.\n\n¿Quieres continuar?`)) {
         text($('backupMessage'), 'Restauración cancelada.');
         return;
       }
@@ -820,7 +1092,13 @@
       const people = Object.fromEntries((Array.isArray(data.members)?data.members:[])
         .filter(m => typeof m.user_id === 'string' && typeof m.display_name === 'string')
         .map(m => [m.user_id, m.display_name]));
-      const total = data.photos.length + data.notes.length;
+      const [existingSongs,existingVideos]=await Promise.all([
+        fetchAll('couple_songs','id,backup_source_id'),fetchAll('couple_videos','id,backup_source_id')
+      ]);
+      const songIds=new Set(existingSongs.flatMap(r=>[r.id,r.backup_source_id].filter(Boolean)));
+      const videoIds=new Set(existingVideos.flatMap(r=>[r.id,r.backup_source_id].filter(Boolean)));
+      const photoIdMap = new Map(existingPhotos.flatMap(r=>[[r.id,r.id], ...(r.backup_source_id?[[r.backup_source_id,r.id]]:[])]));
+      const total = data.photos.length + data.notes.length + (data.videos||[]).length + (data.songs||[]).length;
       let index = 0;
       for (const row of data.photos) {
         index++;
@@ -851,6 +1129,9 @@
         }
         restoredPhotos++;
         photoIds.add(sourceId);
+        // La base genera ID nuevo: buscar la foto restaurada para vincular las canciones.
+        const {data:newPhoto}=await sb.from('couple_photos').select('id').eq('backup_source_id',sourceId).maybeSingle();
+        if(newPhoto?.id)photoIdMap.set(row.id,newPhoto.id);
       }
       for (const row of data.notes) {
         index++;
@@ -869,8 +1150,36 @@
         noteIds.add(sourceId);
         restoredNotes++;
       }
-      await Promise.all([loadPhotos(true),loadNotes()]);
-      text($('backupMessage'), `Restauración terminada: ${restoredPhotos} fotos y ${restoredNotes} notas recuperadas; ${skipped} registros ya existían.`, true);
+      let restoredVideos=0,restoredSongs=0;
+      for(const row of (data.videos||[])){
+        index++;
+        backupProgress(`Restaurando video ${index} de ${total}…`,.1+.85*index/Math.max(total,1));
+        const sourceId=validSourceId(row.backup_source_id)?row.backup_source_id:row.id;
+        if(videoIds.has(row.id)||videoIds.has(sourceId)){skipped++;continue;}
+        const body=await zip.file(row.file).async('blob');
+        const ext=fileExtension(row.file),mime=ext==='mp4'?'video/mp4':'video/webm';
+        if(body.size>45*1024*1024)throw new Error('Un video excede 45 MB.');
+        const path=`${activeUser.id}/restored-${sourceId}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+        const {error:upErr}=await sb.storage.from(VIDEO_BUCKET).upload(path,body,{contentType:mime,upsert:false});if(upErr)throw upErr;
+        const payload={user_id:activeUser.id,storage_path:path,title:cut(row.title,100)||'Video recuperado',note:cut(row.note,300),location:cut(row.location,90),event_date:typeof row.event_date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(row.event_date)?row.event_date:null,backup_source_id:sourceId,original_author_name:cut(row.original_author_name||row.author||people[row.user_id]||'Mi amor',35)};
+        if(typeof row.created_at==='string'&&!Number.isNaN(Date.parse(row.created_at)))payload.created_at=row.created_at;
+        const {error:saveErr}=await sb.from('couple_videos').insert(payload);
+        if(saveErr){await sb.storage.from(VIDEO_BUCKET).remove([path]).catch(()=>{});throw saveErr;}
+        restoredVideos++;videoIds.add(sourceId);
+      }
+      for(const row of (data.songs||[])){
+        index++;
+        backupProgress(`Restaurando canción ${index} de ${total}…`,.1+.85*index/Math.max(total,1));
+        const sourceId=validSourceId(row.backup_source_id)?row.backup_source_id:row.id;
+        if(songIds.has(row.id)||songIds.has(sourceId)){skipped++;continue;}
+        const payload={user_id:activeUser.id,title:cut(row.title,100)||'Canción recuperada',artist:cut(row.artist,90),dedication:cut(row.dedication,300),youtube_id:row.youtube_id,photo_id:photoIdMap.get(row.photo_id)||null,backup_source_id:sourceId,original_author_name:cut(row.original_author_name||people[row.user_id]||'Mi amor',35)};
+        if(typeof row.created_at==='string'&&!Number.isNaN(Date.parse(row.created_at)))payload.created_at=row.created_at;
+        const {error}=await sb.from('couple_songs').insert(payload);if(error)throw error;
+        restoredSongs++;songIds.add(sourceId);
+      }
+      await Promise.all([loadPhotos(true),loadNotes(),loadVideos(),loadSongs()]);
+      text($('backupMessage'), `Restauración terminada: ${restoredPhotos} fotos, ${restoredVideos} videos, ${restoredSongs} canciones y ${restoredNotes} notas; ${skipped} ya existían.`, true);
+
       backupProgress('Restauración completada.', 1);
     } catch(err) {
       hide($('backupProgress'));

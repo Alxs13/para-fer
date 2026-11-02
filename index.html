@@ -5,9 +5,10 @@
 <meta name="description" content="Fer & Alxs: colección privada de recuerdos, tarjetas giratorias, mensajes y cápsula del tiempo.">
 <title>Fer & Alxs · Nuestro universo</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="galeria.css?v=4.2">
-<script defer src="config.js?v=4.2"></script>
+<link rel="stylesheet" href="galeria.css?v=5.0">
+<script defer src="config.js?v=5.0"></script>
 <script defer src="jszip.min.js"></script>
+<script defer src="pdf-native.js?v=5.0"></script>
 <script>
 // Carga controlada: la aplicación se inicia solo después de tener la librería.
 // Si ambos CDN fallan, el usuario ve un diagnóstico explícito.
@@ -16,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
     'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js'
   ];
-  function startApp(){ const app=document.createElement('script'); app.src='galeria.js?v=4.2'; document.body.appendChild(app); }
+  function startApp(){ const app=document.createElement('script'); app.src='galeria.js?v=5.0'; document.body.appendChild(app); }
   function load(index){
     if(window.supabase || index>=urls.length){ startApp();return; }
     const script=document.createElement('script');script.src=urls[index];
@@ -29,15 +30,16 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 </head>
 <body>
+<svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></symbol><symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M8 1h8M8 10h8M8 14h8"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18"/></symbol><symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="18" cy="16" rx="3" ry="2"/></symbol><symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol><symbol id="i-video" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="16" height="14" rx="3"/><path d="m18 10 4-3v10l-4-3"/></symbol><symbol id="i-letter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="m3 7 9 7 9-7"/></symbol><symbol id="i-archive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v12h14V9M10 14h4"/></symbol><symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6c-2.2-2.2-5.8-2.2-8 0L12 6.4l-.8-.8c-2.2-2.2-5.8-2.2-8 0s-2.2 5.8 0 8L12 22l8.8-8.4c2.2-2.2 2.2-5.8 0-8Z"/></symbol><symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.1 6 6 2.1-6 2.1-2.1 6-2.1-6L3.8 10l6.1-2.1zM19 17l1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/></symbol><symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></symbol><symbol id="i-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol><symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol><symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13m-5-5 5 5 5-5M4 18v3h16v-3"/></symbol><symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 11 7-11 7z"/></symbol><symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></symbol></svg>
 <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
 <header class="masthead">
-  <div class="brand"><span class="brand-gem">✦</span><div><strong>FER <span>&</span> ALXS</strong><small>UN UNIVERSO DE DOS</small></div></div>
+  <div class="brand"><span class="brand-gem"><svg class="brand-heart"><use href="#i-heart"/></svg></span><div><strong>FER <span>&</span> ALXS</strong><small>UN UNIVERSO DE DOS</small></div></div>
   <span class="private-tag"><span class="privacy-dot"></span> ESPACIO PRIVADO</span>
 </header>
 <main class="app-shell">
   <div id="cloudWarning" class="system-warning hidden" role="alert"></div>
   <section id="loginView" class="login-view hidden">
-    <div class="login-visual"><div class="portal-ring"><span class="portal-heart">♡</span></div><div class="portal-stars">✦ · ✧ · ✦</div></div>
+    <div class="login-visual"><div class="portal-ring"><span class="portal-heart"><svg class="romantic-heart"><use href="#i-heart"/></svg></span></div><div class="portal-stars">✦ · ✧ · ✦</div></div>
     <div class="login-content"><p class="eyebrow">NUESTRA HISTORIA, NUESTRAS CARTAS</p><h1>El lugar donde<br><em>siempre volvemos.</em></h1><p class="intro">Un álbum solo para nosotros. Cada recuerdo es una carta, cada mensaje una pequeña parte de nuestra historia.</p>
       <form id="loginForm" class="login-form"><label>Tu correo<input id="email" type="email" autocomplete="email" placeholder="tu@correo.com" required></label><label>Tu contraseña<input id="password" type="password" autocomplete="current-password" placeholder="Contraseña" required></label><button id="loginBtn" class="btn-primary" type="submit">Entrar a nuestro mundo <span>↗</span></button></form><p id="loginMsg" class="status-line" role="status"></p>
     </div>
@@ -50,8 +52,8 @@ document.addEventListener('DOMContentLoaded', function () {
     <section class="page active" data-page="home" id="page-home">
       <div class="home-hero"><span class="home-kicker">NUESTRO PEQUEÑO INFINITO</span><h1>Hay momentos<br>que merecen <em>quedarse.</em></h1><p>Un rincón solo nuestro. Un lugar para volver a encontrarnos, aunque estemos lejos.</p><button class="hero-button" id="homeOpenCards" type="button">Explorar cartas <span>↗</span></button><div class="orbit-decor" aria-hidden="true"><div>♡</div></div></div>
       <div class="section-kicker-row"><h2>Tu colección</h2><button class="text-link" type="button" data-go="cards">Ver todas <span>↗</span></button></div>
-      <button class="featured-card" id="featuredCard" type="button" data-go="cards"><span class="featured-image" id="featuredImage"><span class="featured-heart">♡</span></span><span class="featured-content"><small>RECUERDO DESTACADO</small><strong id="featuredTitle">Aquí comienza nuestra historia</strong><span id="featuredSubtitle">Agrega la primera fotografía para llenar este espacio de recuerdos.</span><span class="featured-cta">Abrir colección　↗</span></span></button>
-      <div class="quick-grid"><button id="homeAddPhoto" class="quick-tile" type="button"><span class="tile-icon">＋</span><strong>Crear carta</strong><small>Guarda un momento</small></button><button class="quick-tile" type="button" data-go="notes"><span class="tile-icon">✉</span><strong>Mensajitos</strong><small>Escribe para Fer / Alxs</small></button><button class="quick-tile" type="button" data-go="binder"><span class="tile-icon">▦</span><strong>Archivador</strong><small>Todos sus recuerdos</small></button><button class="quick-tile" type="button" data-go="backup"><span class="tile-icon">⌑</span><strong>Cápsula</strong><small>Respalda la historia</small></button><button class="quick-tile" id="openSurprise" type="button"><span class="tile-icon">✧</span><strong>Sobre sorpresa</strong><small>Descubre una foto al azar</small></button></div>
+      <button class="featured-card" id="featuredCard" type="button" data-go="cards"><span class="featured-image" id="featuredImage"><span class="featured-heart"><svg class="romantic-heart"><use href="#i-heart"/></svg></span></span><span class="featured-content"><small>RECUERDO DESTACADO</small><strong id="featuredTitle">Aquí comienza nuestra historia</strong><span id="featuredSubtitle">Agrega la primera fotografía para llenar este espacio de recuerdos.</span><span class="featured-cta">Abrir colección　↗</span></span></button>
+      <div class="quick-grid"><button id="homeAddPhoto" class="quick-tile" type="button"><span class="tile-icon"><svg class="ui-icon"><use href="#i-plus"/></svg></span><strong>Crear carta</strong><small>Guarda un momento</small></button><button class="quick-tile" type="button" data-go="notes"><span class="tile-icon"><svg class="ui-icon"><use href="#i-letter"/></svg></span><strong>Mensajitos</strong><small>Escribe para Fer / Alxs</small></button><button class="quick-tile" type="button" data-go="binder"><span class="tile-icon"><svg class="ui-icon"><use href="#i-grid"/></svg></span><strong>Archivador</strong><small>Todos sus recuerdos</small></button><button class="quick-tile" type="button" data-go="backup"><span class="tile-icon"><svg class="ui-icon"><use href="#i-archive"/></svg></span><strong>Cápsula</strong><small>Respalda la historia</small></button><button class="quick-tile" id="openSurprise" type="button"><span class="tile-icon"><svg class="ui-icon"><use href="#i-sparkles"/></svg></span><strong>Sobre sorpresa</strong><small>Descubre una foto al azar</small></button></div>
       <div class="note-preview" id="homeNotePreview"><span>✉</span><p>Deja un mensaje y aparecerá aquí.</p></div>
     </section>
 
@@ -76,19 +78,85 @@ document.addEventListener('DOMContentLoaded', function () {
       <div class="section-kicker-row"><h2>Nuestra correspondencia</h2><span class="subtle">Solo ustedes dos</span></div><div id="notesGrid" class="notes-grid"></div>
     </section>
 
+
+    <section class="page" data-page="calendar" id="page-calendar">
+      <div class="page-heading"><p class="eyebrow">NUESTROS DÍAS</p><h1>Cada fecha, <em>un latido.</em></h1><p>Los días con fotografías llevan un punto brillante. Toca cualquier día para explorar recuerdos y recordatorios.</p></div>
+      <div class="content-panel calendar-panel">
+        <div class="calendar-toolbar"><button type="button" id="calPrev" class="circle-arrow" aria-label="Mes anterior"><svg class="ui-icon"><use href="#i-chevron-left"/></svg></button><h2 id="calMonth" aria-live="polite"></h2><button type="button" id="calNext" class="circle-arrow" aria-label="Mes siguiente"><svg class="ui-icon"><use href="#i-chevron-right"/></svg></button></div>
+        <div class="calendar-grid" id="calendarGrid" aria-label="Calendario de recuerdos"></div>
+        <div class="calendar-legend"><span class="legend-dot"></span> Día con fotos <span class="legend-note"></span> Recordatorio</div>
+        <div id="calendarDetails" class="day-details" aria-live="polite"><p>Selecciona una fecha para descubrir su historia.</p></div>
+      </div>
+    </section>
+    <section class="page" data-page="music" id="page-music">
+      <div class="page-heading"><p class="eyebrow">NUESTRA BANDA SONORA</p><h1>La canción que <em>me recordó a ti.</em></h1><p>Una playlist construida entre dos, con canciones de YouTube y los recuerdos que nos despiertan.</p></div>
+      <div class="content-panel soundtrack-panel">
+        <div class="soundtrack-hero"><svg class="soundtrack-art" aria-hidden="true"><use href="#i-music"/></svg><div><span class="eyebrow">REPRODUCCIÓN COMPARTIDA</span><h2>La banda sonora del nosotros</h2><p>Guarda enlaces y escucha cada canción sin salir del álbum cuando YouTube permita insertarla.</p></div></div>
+        <form id="musicForm" class="album-form">
+          <h3>Añadir una canción</h3>
+          <div class="youtube-search"><input id="youtubeSearch" type="search" placeholder="Buscar artista o canción en YouTube" aria-label="Buscar canción"/><button id="youtubeFind" type="button" class="btn-secondary"><svg class="ui-icon"><use href="#i-search"/></svg> Buscar</button></div>
+          <p class="tiny-help">La búsqueda se abre en YouTube: copia el enlace de la canción y regresa a pegarlo aquí.</p>
+          <label>Enlace de YouTube<input id="songUrl" type="url" required placeholder="https://youtu.be/…"/></label>
+          <div class="two-cols"><label>Nombre de la canción<input id="songTitle" maxlength="100" required placeholder="Nuestra canción…"/></label><label>Artista<input id="songArtist" maxlength="90" placeholder="Artista"/></label></div>
+          <label>¿Por qué te recordó ese momento?<textarea id="songDedication" rows="2" maxlength="300" placeholder="La escuché caminando y pensé en ti…"></textarea></label>
+          <label>Vincular a una fotografía (opcional)<select id="songPhoto"><option value="">Sin foto asociada</option></select></label>
+          <button class="btn-primary" id="songSave" type="submit"><svg class="ui-icon"><use href="#i-plus"/></svg> Agregar a nuestra playlist</button>
+          <p id="musicStatus" class="status-line" role="status"></p>
+        </form>
+        <div id="musicPlayer" class="music-player hidden"></div>
+      </div>
+      <div class="section-kicker-row"><h2>Nuestra playlist</h2><span id="songCount" class="subtle">0 canciones</span></div>
+      <div id="songList" class="music-list"></div>
+    </section>
+    <section class="page" data-page="videos" id="page-videos">
+      <div class="page-heading"><p class="eyebrow">MOMENTOS EN MOVIMIENTO</p><h1>Recuerdos <em>que se mueven.</em></h1><p>Guarda videos cortos y personales. Solo ustedes pueden verlos.</p></div>
+      <div class="content-panel video-panel">
+        <form id="videoForm" class="album-form">
+          <label class="video-drop"><svg class="ui-icon"><use href="#i-video"/></svg><strong>Elegir video</strong><small>MP4 o WEBM · hasta 45 MB · usa Wi-Fi</small><input id="videoFile" type="file" accept="video/mp4,video/webm" required/></label>
+          <label>Título<input id="videoTitle" maxlength="100" required placeholder="El día que…"/></label>
+          <div class="two-cols"><label>Fecha<input id="videoDate" type="date"/></label><label>Lugar<input id="videoLocation" maxlength="90" placeholder="Dónde estuvimos"/></label></div>
+          <label>Dedicatoria<textarea id="videoNote" maxlength="300" rows="2" placeholder="Un pedacito de nuestro día…"></textarea></label>
+          <button class="btn-primary" id="videoSave" type="submit"><svg class="ui-icon"><use href="#i-plus"/></svg> Guardar nuestro video</button><p id="videoStatus" class="status-line" role="status"></p>
+        </form>
+      </div>
+      <div class="section-kicker-row"><h2>Videoteca privada</h2><span id="videoCount" class="subtle">0 videos</span></div>
+      <div id="videoGrid" class="video-grid"></div>
+    </section>
+    <section class="page" data-page="more" id="page-more">
+      <div class="page-heading"><p class="eyebrow">NUESTRAS PEQUEÑAS COSAS</p><h1>Todo lo que <em>guardamos.</em></h1></div>
+      <div class="more-grid">
+        <button type="button" data-go="binder" class="more-tile"><svg class="ui-icon"><use href="#i-grid"/></svg><strong>Archivador</strong><span>Miniaturas y colección completa</span></button>
+        <button type="button" data-go="videos" class="more-tile"><svg class="ui-icon"><use href="#i-video"/></svg><strong>Videos</strong><span>Nuestros días en movimiento</span></button>
+        <button type="button" data-go="notes" class="more-tile"><svg class="ui-icon"><use href="#i-letter"/></svg><strong>Mensajitos</strong><span>Cartas y recordatorios privados</span></button>
+        <button type="button" data-go="backup" class="more-tile"><svg class="ui-icon"><use href="#i-archive"/></svg><strong>Cápsula</strong><span>PDF y respaldo ZIP completo</span></button>
+      </div>
+    </section>
+
     <section class="page" data-page="backup" id="page-backup">
       <div class="page-heading"><p class="eyebrow">CÁPSULA DEL TIEMPO</p><h1>Que nada<br>se <em>pierda.</em></h1><p>Guarda tu historia en un archivo ZIP para conservar las cartas, fotografías y mensajes incluso fuera de esta web.</p></div>
       <div class="capsule-art"><span class="capsule-ring">♡</span><span class="capsule-sub">FER & ALXS · ARCHIVO DE NUESTROS DÍAS</span></div>
-      <div class="content-panel backup-content"><h2 id="backupTitle">Copia de nuestra historia</h2><p id="backupStatus" class="subtle">Revisando copias…</p><button id="backupExportBtn" class="btn-primary" type="button">↓ Descargar respaldo completo</button><div class="backup-progress hidden" id="backupProgress" aria-live="polite"><span id="backupProgressText">Preparando respaldo…</span><div class="bar"><span id="backupProgressBar"></span></div></div><div class="backup-divider"></div><h3>Restaurar nuestro universo</h3><p class="subtle">Si cambias de teléfono o proyecto, puedes recuperar tus recuerdos desde un respaldo anterior.</p><label>Seleccionar respaldo ZIP<input id="backupImportInput" type="file" accept=".zip,application/zip"></label><button id="backupImportBtn" class="btn-secondary" type="button" disabled>Restaurar desde ZIP</button><p id="backupMessage" class="status-line" role="status"></p><p class="security-note">Los respaldos no están cifrados. Guárdalos en un espacio privado y en una segunda ubicación. Las copias son manuales, no automáticas.</p></div>
+      <div class="content-panel backup-content"><h2 id="backupTitle">Copia de nuestra historia</h2><p id="backupStatus" class="subtle">Revisando copias…</p><button id="backupExportBtn" class="btn-primary" type="button">↓ Descargar respaldo completo</button><div class="backup-progress hidden" id="backupProgress" aria-live="polite"><span id="backupProgressText">Preparando respaldo…</span><div class="bar"><span id="backupProgressBar"></span></div></div><div class="pdf-box">
+  <p class="eyebrow">ÁLBUM PARA GUARDAR</p>
+  <h3>Nuestro libro de recuerdos</h3>
+  <p>Descarga un PDF privado con una página por fotografía: imagen, fecha, lugar, historia, dedicatoria y recordatorio. También incluye todos los mensajes y notas. Ideal para leer o imprimir. <strong>El ZIP sigue siendo necesario para restaurar el álbum.</strong></p>
+  <button id="pdfExportBtn" class="btn-secondary" type="button">↓ Crear libro PDF ilustrado</button>
+  <p id="pdfExportMessage" class="status-line" role="status"></p>
+</div><div class="backup-divider"></div><h3>Restaurar nuestro universo</h3><p class="subtle">Si cambias de teléfono o proyecto, puedes recuperar tus recuerdos desde un respaldo anterior.</p><label>Seleccionar respaldo ZIP<input id="backupImportInput" type="file" accept=".zip,application/zip"></label><button id="backupImportBtn" class="btn-secondary" type="button" disabled>Restaurar desde ZIP</button><p id="backupMessage" class="status-line" role="status"></p><p class="security-note">El PDF es para leer o imprimir y NO se puede restaurar. El ZIP incluye fotos, videos y los datos de la playlist. Los respaldos no están cifrados. Guárdalos en un espacio privado y en una segunda ubicación. Las copias son manuales, no automáticas.</p></div>
     </section>
     <div id="statusMsg" class="toast-status" role="status" aria-live="polite"></div>
-    <nav class="bottom-nav" aria-label="Navegación principal"><button type="button" class="active" data-go="home" aria-current="page"><span>⌂</span><small>Inicio</small></button><button type="button" data-go="cards"><span>▣</span><small>Cartas</small></button><button type="button" data-go="binder"><span>▦</span><small>Álbum</small></button><button type="button" data-go="notes"><span>✉</span><small>Mensajes</small></button><button type="button" data-go="backup"><span>◈</span><small>Cápsula</small></button></nav>
-    <button id="fabAdd" class="fab" type="button" aria-label="Crear una nueva carta">＋ <span>Nueva carta</span></button>
+    <nav class="bottom-nav" aria-label="Navegación principal">
+  <button type="button" class="active" data-go="home" aria-current="page"><svg class="ui-icon"><use href="#i-house"/></svg><small>Inicio</small></button>
+  <button type="button" data-go="cards"><svg class="ui-icon"><use href="#i-layers"/></svg><small>Cartas</small></button>
+  <button type="button" data-go="calendar"><svg class="ui-icon"><use href="#i-calendar"/></svg><small>Calendario</small></button>
+  <button type="button" data-go="music"><svg class="ui-icon"><use href="#i-music"/></svg><small>Música</small></button>
+  <button type="button" data-go="more"><svg class="ui-icon"><use href="#i-grid"/></svg><small>Más</small></button>
+</nav>
+    <button id="fabAdd" class="fab" type="button" aria-label="Crear una nueva carta"><svg class="ui-icon"><use href="#i-plus"/></svg><span>Nueva carta</span></button>
   </div>
 </main>
 
 <div id="uploadOverlay" class="overlay hidden" aria-hidden="true"><div class="sheet-scrim" data-close="upload"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="uploadHeading"><div class="sheet-grabber"></div><div class="sheet-head"><div><p class="eyebrow">UNA CARTA NUEVA</p><h2 id="uploadHeading">Guardar un recuerdo</h2></div><button id="closeUpload" class="icon-btn" type="button" aria-label="Cerrar">×</button></div><div class="sheet-content"><form id="uploadForm" class="upload-form"><label class="dropzone" for="photoInput" id="dropzone"><input id="photoInput" type="file" accept="image/*" multiple><span class="drop-icon">＋</span><strong>Elegir fotografías</strong><small>Hasta 8 por vez · JPG, PNG, WEBP o GIF</small></label><div id="preview" class="preview hidden"></div><label>Título de la carta<input id="memoryTitle" maxlength="80" placeholder="El día que…"></label><label>Mensaje al frente<textarea id="bubbleText" maxlength="180" rows="2" placeholder="Una frase para recordar…"></textarea></label><div class="two-cols"><label>Fecha<input id="eventDate" type="date"></label><label>Lugar<input id="location" maxlength="90" placeholder="¿Dónde fue?"></label></div><label>Historia en el reverso<textarea id="backNote" maxlength="240" rows="3" placeholder="Lo que sentiste, lo que pasó…"></textarea></label><label>Promesa o recordatorio<input id="reminder" maxlength="140" placeholder="Volver a vivirlo…"></label><button id="uploadBtn" class="btn-primary" type="submit" disabled>Guardar en nuestra colección　♡</button><p id="uploadStatus" class="status-line" role="status"></p></form><div id="progressBox" class="backup-progress hidden" aria-live="polite"><p id="progressText">Subiendo…</p><div class="bar"><span id="progressBar"></span></div></div></div></section></div>
-<div id="surpriseOverlay" class="surprise-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="surpriseHeading"><div class="surprise-panel"><button type="button" id="closeSurprise" class="icon-btn surprise-close" aria-label="Cerrar">×</button><p class="eyebrow">UN RECUERDO PARA HOY</p><div class="surprise-envelope"><span>♡</span></div><h2 id="surpriseHeading">Nuestros días merecen volver.</h2><p>Abre un sobre y descubre un recuerdo que ya guardaron en su colección.</p><button type="button" id="revealSurprise" class="btn-primary">Abrir sobre　✦</button></div></div>
+<div id="surpriseOverlay" class="surprise-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="surpriseHeading"><div class="surprise-panel"><button type="button" id="closeSurprise" class="icon-btn surprise-close" aria-label="Cerrar">×</button><p class="eyebrow">UN RECUERDO PARA HOY</p><div class="surprise-envelope"><span><svg class="romantic-heart"><use href="#i-heart"/></svg></span></div><h2 id="surpriseHeading">Nuestros días merecen volver.</h2><p>Abre un sobre y descubre un recuerdo que ya guardaron en su colección.</p><button type="button" id="revealSurprise" class="btn-primary">Abrir sobre　✦</button></div></div>
 <div id="lightbox" class="lightbox hidden" aria-hidden="true"><button id="lightboxClose" type="button" class="icon-btn lightbox-close" aria-label="Cerrar">×</button><div class="lightbox-content"><img id="lightboxImg" alt="Foto de nuestra historia"><h2 id="lightboxTitle"></h2><p id="lightboxDesc"></p></div></div>
 </body>
 </html>
