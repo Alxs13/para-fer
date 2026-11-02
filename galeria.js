@@ -190,7 +190,7 @@
   let isLoadingPage = false;
   let filteredPhotos = [];
   let page = 'home';
-  const sectionNames = ['home','cards','chat','savings','binder','notes','backup','calendar','music','videos','more'];
+  const sectionNames = ['home','cards','chat','savings','binder','notes','backup','calendar','music','videos','more','today','places','gifts','dreams','diary','studio'];
 
   function goPage(name) {
     if (!sectionNames.includes(name)) name = 'home';
@@ -203,6 +203,7 @@
       if(on) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current');
     });
     window.scrollTo({ top: 0, behavior: 'instant' });
+    window.dispatchEvent(new CustomEvent('fer-page', {detail:name}));
     if (name === 'cards') scrollToCard(activeCard, false);
     if(name === 'savings') loadSavings().catch(e=>text($('savingsStatus'),friendly(e)));
     if(name === 'chat') { loadStickers().catch(console.warn); loadChat(true).catch(e=>text($('chatStatus'),friendly(e))); }
@@ -1372,7 +1373,7 @@
       const zip = new JSZip();
       const people = Object.fromEntries(members.map(m => [m.user_id, m.display_name]));
       const manifest = {
-        format: 'fer-alxs-backup', version: 4,
+        format: 'fer-alxs-backup', version: 5,
         exported_at: new Date().toISOString(),
         members: members.map(m => ({ user_id: m.user_id, display_name:m.display_name })),
         photos: [], notes: [], songs:[], videos:[], chat:[], stickers:[], goals:allGoals, entries:allEntries
@@ -1438,6 +1439,7 @@
         manifest.videos.push({...meta,file,author:row.original_author_name||people[row.user_id]||'Mi amor'});
         human.push(`VIDEO: ${row.title}`,`Fecha: ${row.event_date||'sin fecha'}`,`Lugar: ${row.location||''}`,`Nota: ${row.note||''}`,`Archivo: ${file}`,'');
       }
+      if(window.FerV7Backup?.append)await window.FerV7Backup.append({manifest,zip,human,sb,members,activeUser,fetchAll});
       zip.file('respaldo.json', JSON.stringify(manifest, null, 2));
       zip.file('NUESTROS_RECUERDOS.txt', human.join('\n'));
       zip.file('LEEME.txt', 'FER & ALXS — RESPALDO PRIVADO\n\nEste ZIP contiene fotografías y datos personales. No lo compartas públicamente.\n\nPara restaurarlo: entra a la web con una de las dos cuentas, abre Cápsula del tiempo, elige este ZIP y pulsa Restaurar recuerdos.\n\nEl archivo respaldo.json tiene el contenido estructurado. Puedes leer NUESTROS_RECUERDOS.txt aunque ya no tengas la web.\n\nLos archivos originales de la nube fueron optimizados al subirlos; esta copia conserva esas imágenes, no el original sin comprimir de la cámara.\n');
@@ -1488,7 +1490,7 @@
       const rawJson = await manifestFile.async('string');
       if (rawJson.length > 8 * 1024 * 1024) throw new Error('El registro del respaldo es demasiado grande.');
       const data = JSON.parse(rawJson);
-      if (data.format !== 'fer-alxs-backup' || ![2,3,4].includes(data.version) || !Array.isArray(data.photos) || !Array.isArray(data.notes)) throw new Error('Formato de respaldo incompatible.');
+      if (data.format !== 'fer-alxs-backup' || ![2,3,4,5].includes(data.version) || !Array.isArray(data.photos) || !Array.isArray(data.notes)) throw new Error('Formato de respaldo incompatible.');
       if (data.photos.length > 5000 || data.notes.length > 10000) throw new Error('El ZIP supera los límites de restauración desde esta web.');
       if(data.version>=3 && (!Array.isArray(data.songs)||!Array.isArray(data.videos)))throw new Error('El respaldo nuevo no tiene sección de canciones o videos.');
       if(data.version>=4 && (!Array.isArray(data.chat)||!Array.isArray(data.stickers)||!Array.isArray(data.goals)||!Array.isArray(data.entries)))throw new Error('Faltan datos de la versión 4 del respaldo.');
@@ -1683,6 +1685,7 @@
         if(error){if(path)await sb.storage.from(CHAT_FILES_BUCKET).remove([path]).catch(()=>{});throw error;}
         chatIds.add(sourceId);restoredChat++;
       }
+      if(data.version===5 && window.FerV7Backup?.restore)await window.FerV7Backup.restore({data,zip,sb,activeUser});
       await Promise.all([loadPhotos(true),loadNotes(),loadVideos(),loadSongs(),loadStickers(),loadSavings(),loadChat(true)]);
       text($('backupMessage'), `Restauración terminada: ${restoredPhotos} fotos, ${restoredVideos} videos, ${restoredSongs} canciones y ${restoredNotes} notas, ${restoredChat} mensajes, ${restoredStickers} stickers, ${restoredGoals} metas y ${restoredEntries} movimientos; ${skipped} ya existían.`, true);
 
@@ -1696,5 +1699,11 @@
       $('backupImportBtn').disabled = !$('backupImportInput').files.length;
       $('backupExportBtn').disabled = false;
     }
+  });
+  window.FerCoreV7 = Object.freeze({
+    sb, user:()=>activeUser, members:()=>members.slice(),
+    photos:()=>photos.slice(), allPhotos:()=>fetchAll('couple_photos',pictureFields),
+    goPage, openUpload, loadSavings:()=>loadSavings(), goals:()=>savingsGoals.slice(),
+    downloadBlob, formatDate:fmtDate
   });
 })();
