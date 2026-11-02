@@ -285,7 +285,7 @@
 
   function memoryCard(item) {
     const title = item.title || 'Recuerdo sin título';
-    const bubble = item.bubble_text || 'Un momento que guardamos para siempre. ♡';
+    const dedication = item.bubble_text || ''; // Se muestra al reverso, sin cubrir la fotografía
     const note = item.back_note || 'Aún sin una historia escrita.';
     const reminder = item.reminder || 'Un recuerdo para atesorar.';
     const where = item.location || 'Nuestro lugar secreto';
@@ -300,7 +300,6 @@
           <div class="photo-frame">
             ${item.signedUrl ? `<img src="${escapeHtml(item.signedUrl)}" alt="${escapeHtml(title)}" loading="lazy"/>` : '<span class="empty-heart">♡</span>'}
             <div class="memory-topbar"><span class="author-pill">✦ ${escapeHtml(authorName(item))}</span><span class="date-pill">Nº ${String(filteredPhotos.indexOf(item) + 1).padStart(3,'0')}</span></div>
-            <div class="bubble-wrap"><span class="bubble">${escapeHtml(bubble)}</span></div>
           </div>
           <div class="memory-content"><h4 class="memory-title">${escapeHtml(title)}</h4><p class="memory-snippet">${escapeHtml(when)} · ${escapeHtml(where)}</p>
             <div class="card-actions"><button type="button" class="small-btn" data-action="flip">↻ Girar carta</button><button type="button" class="small-btn" data-action="zoom">Ampliar foto</button>${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete">Eliminar</button>' : ''}</div>
@@ -309,6 +308,7 @@
         <div class="memory-side memory-back"><div class="back-body"><h4>${escapeHtml(title)}</h4><div class="meta-list">
           <div class="meta-item"><b>Cuándo fue</b><span>${escapeHtml(when)}</span></div>
           <div class="meta-item"><b>Dónde estuvimos</b><span>${escapeHtml(where)}</span></div>
+          ${dedication ? `<div class="meta-item fer78-dedication"><b>Dedicatoria</b><span>${escapeHtml(dedication)}</span></div>` : ''}
           <div class="meta-item"><b>Nuestra historia</b><span>${escapeHtml(note)}</span></div>
           <div class="meta-item"><b>Para no olvidar</b><span>${escapeHtml(reminder)}</span></div>
           </div><div class="back-footer"><button type="button" class="small-btn" data-action="flip">↻ Volver</button><button type="button" class="small-btn" data-action="zoom">Foto</button>${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete">Eliminar</button>' : ''}</div></div></div>
@@ -1166,7 +1166,7 @@
     bubble.addEventListener('dblclick',e=>{if(window.matchMedia('(pointer:coarse)').matches||e.target.closest('button,a,audio,video'))return;e.preventDefault();react77(item,preferredEmoji);});
   }
   // GIPHY requiere API key pública; la clave se conserva solo en el navegador y jamás es clave de Supabase.
-  function giphyKey77(){try{return (window.COUPLE_CONFIG?.GIPHY_API_KEY||localStorage.getItem('fer-alxs-giphy-key')||'').trim();}catch{return window.COUPLE_CONFIG?.GIPHY_API_KEY||'';}}
+  function giphyKey77(){try{return (window.COUPLE_CONFIG?.GIPHY_API_KEY||window.FERALXS_PUBLIC_GIPHY_KEY||localStorage.getItem('fer-alxs-giphy-key')||'').trim();}catch{return window.COUPLE_CONFIG?.GIPHY_API_KEY||window.FERALXS_PUBLIC_GIPHY_KEY||'';}}
   function isGiphyUrl77(url){try{const u=new URL(url);return u.protocol==='https:'&&/^media[0-9]*\.giphy\.com$/.test(u.hostname)&&u.pathname.length<300;}catch{return false;}}
   async function searchGifs77(){
     const query=$('chatGifQuery').value.trim().slice(0,50),key=giphyKey77(),grid=$('chatGifResults');
@@ -1203,7 +1203,7 @@
     for(const id of ['chatEmojiGrid','chatStickerGrid','chatFavoritesGrid','chatStickerImport'])hide($(id));
     document.querySelectorAll('.chat-picker-tabs button').forEach(b=>b.classList.toggle('active',b===originalGifTab));
     show($('chatGifPicker'));if(!giphyKey77())show($('chatGifKeyConfig'));
-    $('chatGifQuery').focus({preventScroll:true});
+    $('chatGifQuery').blur(); // no forzar teclado al abrir la bandeja
   });
   // La pestaña GIF usa el mismo selector; restaurar la pestaña apropiada al pulsar las anteriores.
   ['chatEmojiTab','chatStickerTab','chatFavoritesTab'].forEach(id=>$(id).addEventListener('click',()=>hide($('chatGifPicker'))));
@@ -1453,7 +1453,23 @@
   });
   chatInput.addEventListener('input',()=>{chatInput.style.height='auto';chatInput.style.height=Math.min(chatInput.scrollHeight,118)+'px';});
   chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing && window.matchMedia('(min-width:700px)').matches){e.preventDefault();$('chatForm').requestSubmit();}});
-  $('chatPickerToggle').addEventListener('click',()=>{$('chatPicker').classList.toggle('hidden');});
+  const picker78=$('chatPicker'), scrim78=$('chatPickerScrim'), compose78=$('chatForm');
+  function syncPicker78(){
+    const open=!picker78.classList.contains('hidden');
+    scrim78.classList.toggle('hidden',!open);
+    $('chatPickerToggle').setAttribute('aria-expanded',String(open));
+    const height=Math.ceil(compose78.getBoundingClientRect().height);
+    picker78.style.setProperty('--fer78-composer',height+'px');
+    scrim78.style.setProperty('--fer78-composer',height+'px');
+    picker78.classList.toggle('fer78-open',open);
+  }
+  new MutationObserver(syncPicker78).observe(picker78,{attributes:true,attributeFilter:['class']});
+  if('ResizeObserver' in window){new ResizeObserver(syncPicker78).observe(compose78);}
+  window.addEventListener('resize',syncPicker78);
+  $('chatPickerClose').addEventListener('click',()=>{hide(picker78);$('chatInput').focus({preventScroll:true});});
+  scrim78.addEventListener('click',()=>hide(picker78));
+  syncPicker78();
+  $('chatPickerToggle').addEventListener('click',()=>{picker78.classList.toggle('hidden');syncPicker78();});
   function setPickerTab(name){
     stickerPickerMode=name;
     const emojis=name==='emoji', stickers=name==='sticker', favorites=name==='favorites';

@@ -1,0 +1,42 @@
+
+/* FER & ALXS 7.8 · chat compacto como aplicación, manteniendo toda la historia */
+#page-chat .chat-shell{position:relative;isolation:isolate}
+#page-chat .chat-picker-scrim{position:absolute;inset:0 0 var(--fer78-composer,66px);z-index:8;border:0;background:rgba(13,2,12,.55);backdrop-filter:blur(2px);width:100%;cursor:pointer}
+#page-chat .chat-picker{position:absolute;left:0;right:0;bottom:var(--fer78-composer,66px);z-index:9;max-height:min(64%,435px);height:min(58%,400px);min-height:0;background:linear-gradient(155deg,#4c1931,#270b1f);border:1px solid #a65b7e;border-bottom:0;border-radius:24px 24px 0 0;padding:8px 12px 12px;box-shadow:0 -15px 40px #0c020c88;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+#page-chat .chat-picker.hidden,#page-chat .chat-picker-scrim.hidden{display:none!important}
+#page-chat .chat-compose{z-index:12;position:relative}
+#page-chat .chat-reply-bar{z-index:12;position:relative}
+.fer78-picker-head{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:36px;gap:8px;flex:0 0 auto}
+.fer78-picker-head strong{color:#ffecf1;font-size:13px;font-weight:650;letter-spacing:.01em}
+.fer78-picker-head button{width:34px;height:34px;border-radius:50%;border:1px solid #b87592;background:#ffffff14;color:#ffe7ee;font-size:16px;display:grid;place-items:center;flex:0 0 auto}
+.fer78-grabber{position:absolute;top:-6px;left:calc(50% - 22px);width:44px;height:4px;background:#d7a4b9;border-radius:99px}
+#page-chat .chat-picker-tabs{flex:0 0 auto;margin:0 0 3px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;overflow:visible}
+#page-chat .chat-picker-tabs button{white-space:nowrap;min-width:0;min-height:36px;border-radius:11px;padding:6px 3px;font-size:11px;justify-content:center;gap:3px}
+#page-chat .chat-gif-picker{display:flex;flex:1 1 auto;min-height:0;overflow:hidden;flex-direction:column;gap:7px}
+#page-chat .gif-search-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;flex:0 0 auto}
+#page-chat .gif-search-row input{font-size:14px;min-height:42px;padding:10px 12px}
+#page-chat .gif-search-btn{min-width:74px;min-height:42px;font-weight:650}
+#page-chat .gif-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:max-content;gap:8px;flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;overscroll-behavior:contain;padding:3px 3px 8px}
+#page-chat .fer77-gif-item{aspect-ratio:1.25;min-width:0;border-radius:13px;background:#1a0814;transition:transform .15s ease}
+#page-chat .fer77-gif-item:active{transform:scale(.96)}
+#page-chat .gif-status{flex:0 0 auto;margin:0;font-size:11px;min-height:0}
+#page-chat .gif-attribution{flex:0 0 auto;font-size:10px}
+#page-chat .chat-emoji-grid,#page-chat .chat-sticker-grid{overflow-y:auto;min-height:0;max-height:none;flex:1 1 auto;align-content:start}
+#page-chat .sticker-import{overflow-y:auto;flex:0 1 auto;min-height:0}
+#page-chat .gif-key-config{flex:0 0 auto;overflow-y:auto;max-height:45%}
+@media(max-width:719px){
+  #page-chat .chat-picker{height:min(59%,410px);max-height:65%;border-radius:20px 20px 0 0;padding:7px 10px 10px}
+  #page-chat .chat-picker-tabs button{font-size:10px}
+  #page-chat .chat-compose{padding-bottom:max(7px,env(safe-area-inset-bottom))}
+}
+@media(max-height:600px){#page-chat .chat-picker{height:min(65%,290px);max-height:75%}}
+/* Las fotos se muestran sin globos superpuestos; su texto está en el reverso. */
+.memory-front .photo-frame{isolation:isolate;overflow:hidden;background:#1f0b18}
+.memory-front .photo-frame img{width:100%;height:100%;object-fit:contain;object-position:center center}
+.memory-front .photo-frame:after{display:none!important}
+.memory-front .bubble-wrap,.memory-front .bubble{display:none!important}
+.memory-back .fer78-dedication{border:1px solid rgba(244,188,188,.22);padding:10px;border-radius:12px;background:#f6b4ca12}
+.memory-back .fer78-dedication b{color:#ffe2bf}
+#page-cards .memory-front .photo-frame{height:73%}
+@media(max-width:719px){#page-cards .memory-front .photo-frame{height:72%}}
+@media(prefers-reduced-motion:reduce){#page-chat .chat-picker{transition:none!important}}
