@@ -121,6 +121,7 @@
       if (extraSub) { sb.removeChannel(extraSub); extraSub = null; }
       if (chatSub) { sb.removeChannel(chatSub); chatSub = null; }
       if (miscSub) { sb.removeChannel(miscSub); miscSub = null; }
+      closeStickerMessageMenu();
       chatMessages = []; chatOffset = 0; customStickers = []; savingsGoals = []; savingsEntries = [];
       songs=[]; videos=[]; calendarPhotos=[];
       $('musicPlayer').replaceChildren(); $('musicPlayer').classList.add('hidden');
@@ -195,6 +196,7 @@
 
   function goPage(name) {
     if (!sectionNames.includes(name)) name = 'home';
+    if(name !== 'chat'){ const openMenu=document.getElementById('stickerMessageMenu');if(openMenu&&!openMenu.classList.contains('hidden')){openMenu.classList.add('hidden');openMenu.setAttribute('aria-hidden','true');} }
     page = name;
     appView.dataset.currentPage=name;
     document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.dataset.page === name));
@@ -1018,7 +1020,8 @@
       if(error)throw error;
       await loadFavoriteStickers();
       text($('stickerStatus'),adding?'Agregado a favoritos de ambos.':'Retirado de favoritos de ambos.',true);
-    }catch(e){text($('stickerStatus'),'No se pudo cambiar el favorito: '+friendly(e));}
+      return true;
+    }catch(e){text($('stickerStatus'),'No se pudo cambiar el favorito: '+friendly(e));return false;}
     finally{button.disabled=false;}
   }
   function makeFavoriteButton(key,label){
@@ -1092,6 +1095,95 @@
   const chatWall = document.querySelector('#page-chat .chat-wall');
   const chatTimeline=$('chatTimeline');
   const chatInput=$('chatInput');
+
+  // FUSIÓN 7.6: tocar un sticker recibido o enviado abre las mismas acciones que el selector.
+  const stickerMessageMenu=$('stickerMessageMenu');
+  const stickerMessageFav=$('stickerMessageFav');
+  const stickerMessageSend=$('stickerMessageSend');
+  let selectedStickerMessage=null;
+  let stickerMessageReturnFocus=null;
+  function stickerMessageDetails(item){
+    if(item?.kind!=='sticker')return null;
+    if(item.sticker_id){
+      const st=customStickers.find(s=>s.id===item.sticker_id);
+      if(!st)return null; // no se puede agregar un sticker que no se cargó desde Supabase
+      return {key:customKey(st.id),title:st.name,available:!st.archived_at,
+        image:st.signedUrl||'',item,kind:'custom',id:st.id};
+    }
+    const st=stickerById(item.sticker_code);
+    return st?{key:builtinKey(st.id),title:st.title,available:true,
+      item,kind:'builtin',id:st.id}:null;
+  }
+  function syncStickerMessageMenu(){
+    if(!selectedStickerMessage)return;
+    const selected=selectedStickerMessage;
+    const fav=hasFavorite(selected.key);
+    stickerMessageFav.textContent=fav?'★ Quitar de favoritos':'☆ Agregar a favoritos';
+    stickerMessageFav.setAttribute('aria-pressed',String(fav));
+    stickerMessageFav.disabled=!selected.available || !favoriteEnabled;
+    stickerMessageSend.disabled=!selected.available;
+    const info=$('stickerMessageInfo');
+    info.textContent=!selected.available?'Este sticker fue retirado de la colección y no se puede volver a guardar ni enviar.':
+      !favoriteEnabled?'Activa SQL 08 para usar favoritos compartidos.':
+      'Estos favoritos son compartidos: cuando lo agregas, Fer también puede usarlo.';
+  }
+  function openStickerMessageMenu(item,trigger){
+    const selected=stickerMessageDetails(item);
+    if(!selected){text($('chatStatus'),'Este sticker no está disponible. Actualiza el chat.');return;}
+    selectedStickerMessage=selected;
+    stickerMessageReturnFocus=trigger;
+    const preview=$('stickerMessagePreview');preview.replaceChildren();
+    if(selected.kind==='builtin'){
+      const temp=document.createElement('div');temp.innerHTML=stickerHTML(selected.id);
+      preview.append(temp.firstElementChild);
+    }else if(selected.image){
+      const img=document.createElement('img');img.src=selected.image;img.alt=selected.title;
+      img.className='sticker-message-preview-img';preview.append(img);
+    }else{
+      const p=document.createElement('p');p.textContent='No se pudo cargar la imagen del sticker.';preview.append(p);
+    }
+    $('stickerMessageTitle').textContent=selected.title;
+    $('stickerMessageStatus').textContent='';
+    syncStickerMessageMenu();
+    show(stickerMessageMenu);
+    stickerMessageMenu.setAttribute('aria-hidden','false');
+    stickerMessageFav.focus({preventScroll:true});
+  }
+  function closeStickerMessageMenu(){
+    if(stickerMessageMenu.classList.contains('hidden'))return;
+    hide(stickerMessageMenu);stickerMessageMenu.setAttribute('aria-hidden','true');
+    selectedStickerMessage=null;
+    if(stickerMessageReturnFocus?.isConnected)stickerMessageReturnFocus.focus({preventScroll:true});
+    stickerMessageReturnFocus=null;
+  }
+  $('stickerMessageDismiss').addEventListener('click',closeStickerMessageMenu);
+  stickerMessageMenu.querySelector('.sticker-message-scrim').addEventListener('click',closeStickerMessageMenu);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!stickerMessageMenu.classList.contains('hidden')){e.preventDefault();closeStickerMessageMenu();}});
+  stickerMessageFav.addEventListener('click',async()=>{
+    const selected=selectedStickerMessage;
+    if(!selected||!selected.available||!favoriteEnabled)return;
+    stickerMessageFav.disabled=true;
+    $('stickerMessageStatus').textContent='Guardando…';
+    const success=await toggleFavorite(selected.key,stickerMessageFav);
+    if(selectedStickerMessage?.key!==selected.key)return;
+    syncStickerMessageMenu();
+    $('stickerMessageStatus').textContent=success
+      ? (hasFavorite(selected.key)?'Listo: Fer también lo verá en ★ Favoritos.':'Sticker quitado de los favoritos compartidos.')
+      : 'No se pudo guardar. Revisa la conexión o SQL 08.';
+  });
+  stickerMessageSend.addEventListener('click',async()=>{
+    const selected=selectedStickerMessage;
+    if(!selected||!selected.available||chatBusy)return;
+    closeStickerMessageMenu();
+    if(selected.kind==='builtin')await sendBuiltinSticker(selected.id);
+    else await sendCustomSticker(selected.id);
+  });
+  $('stickerMessageReply').addEventListener('click',()=>{
+    const selected=selectedStickerMessage;
+    if(!selected)return;
+    closeStickerMessageMenu();setReply(selected.item);
+  });
+
   function setReply(item) {
     replyDraft={id:item.id,author:authorName(item),body:item.kind==='sticker'?'Sticker':(item.kind==='audio'?'Nota de voz':(item.kind==='file'?item.file_name:item.body))};
     $('chatReplyName').textContent=replyDraft.author;
@@ -1116,10 +1208,17 @@
         q.append(name,body);bubble.append(q);}
       if(item.kind==='sticker' && item.sticker_id){
         const s=customStickers.find(s=>s.id===item.sticker_id);
-        if(s){const visual=document.createElement('img');visual.className='chat-custom-sticker';visual.src=s.signedUrl||'';visual.alt=s.name;visual.loading='lazy';bubble.append(visual);}
-        else {const b=document.createElement('span');b.textContent='Sticker guardado (pulsa actualizar)';bubble.append(b);}
+        if(s){
+          const btn=document.createElement('button');btn.type='button';btn.className='chat-sticker-message-tap';
+          btn.setAttribute('aria-label','Opciones para el sticker «'+s.name+'»: favoritos, reenviar o responder');
+          const visual=document.createElement('img');visual.className='chat-custom-sticker';visual.src=s.signedUrl||'';visual.alt=s.name;visual.loading='lazy';
+          btn.append(visual);btn.addEventListener('click',()=>openStickerMessageMenu(item,btn));bubble.append(btn);
+        }else {const b=document.createElement('span');b.textContent='Sticker guardado (pulsa actualizar)';bubble.append(b);}
       }else if(item.kind==='sticker' && stickerById(item.sticker_code)){
-        const visual=document.createElement('div');visual.innerHTML=stickerHTML(item.sticker_code);bubble.append(visual.firstChild);
+        const btn=document.createElement('button');btn.type='button';btn.className='chat-sticker-message-tap';
+        btn.setAttribute('aria-label','Opciones para sticker «'+stickerById(item.sticker_code).title+'»: favoritos, reenviar o responder');
+        const visual=document.createElement('div');visual.innerHTML=stickerHTML(item.sticker_code);btn.append(visual.firstChild);
+        btn.addEventListener('click',()=>openStickerMessageMenu(item,btn));bubble.append(btn);
       }else if(['file','audio'].includes(item.kind) && item.attachment_path){
         const fileBox=document.createElement('div');fileBox.className='chat-attachment';
         const fileName=document.createElement('span');fileName.textContent=item.file_name||'Archivo adjunto';

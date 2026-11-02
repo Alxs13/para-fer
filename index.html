@@ -6,14 +6,14 @@
 <meta name="color-scheme" content="dark"><meta name="robots" content="noindex,nofollow">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Fer & Alxs"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta property="og:title" content="Fer & Alxs · Nuestro universo"><meta property="og:description" content="Un espacio privado para dos."><meta property="og:type" content="website">
-<title>Fer & Alxs · Nuestro universo · Fusión 7.3</title>
+<title>Fer & Alxs · Nuestro universo · Fusión 7.6</title>
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/icon-192.png"><link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap">
-<link rel="stylesheet" href="css/galeria.css?v=73"><link rel="stylesheet" href="css/mejoras.css?v=73"><link rel="stylesheet" href="css/vc.css?v=73">
-<script defer src="config.js?v=73"></script>
+<link rel="stylesheet" href="css/galeria.css?v=76"><link rel="stylesheet" href="css/mejoras.css?v=76"><link rel="stylesheet" href="css/vc.css?v=76">
+<script defer src="config.js?v=76"></script>
 <script defer src="vendor/jszip.min.js"></script>
-<script defer src="js/pdf-native.js?v=73"></script>
+<script defer src="js/pdf-native.js?v=76"></script>
 <script>
 // Carga controlada: la aplicación se inicia solo después de tener la librería.
 // Si ambos CDN fallan, el usuario ve un diagnóstico explícito.
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
   ];
   function startApp(){
     const chain=['js/galeria.js','js/universo.js','js/mejoras.js','js/vc.js'];
-    (function next(i){ if(i>=chain.length)return; const sc=document.createElement('script'); sc.src=chain[i]+'?v=73'; sc.onload=function(){next(i+1)}; sc.onerror=function(){ if(i===0){ var w=document.getElementById('cloudWarning'); if(w){w.textContent='No se pudo cargar la aplicación. Revisa tu conexión y recarga.';w.classList.remove('hidden');} } else next(i+1); }; document.body.appendChild(sc); })(0);
+    (function next(i){ if(i>=chain.length)return; const sc=document.createElement('script'); sc.src=chain[i]+'?v=76'; sc.onload=function(){next(i+1)}; sc.onerror=function(){ if(i===0){ var w=document.getElementById('cloudWarning'); if(w){w.textContent='No se pudo cargar la aplicación. Revisa tu conexión y recarga.';w.classList.remove('hidden');} } else next(i+1); }; document.body.appendChild(sc); })(0);
   }
   function load(index){
     if(window.supabase){startApp();return;} if(index>=urls.length){ const w=document.getElementById('cloudWarning'); if(w){w.textContent='No se pudo cargar la librería de Supabase. Comprueba la conexión e inténtalo otra vez.';w.classList.remove('hidden');} return; }
@@ -252,6 +252,17 @@ document.addEventListener('DOMContentLoaded', function () {
     <p class="v71-welcome-copy">Quería que tuviéramos un lugar al que volver incluso cuando estemos lejos. Aquí caben nuestras fotos, canciones, historias y todos esos pequeños momentos que hacen tan especial estar contigo.</p>
     <p class="v71-welcome-signature">Con amor, Alxs</p>
     <div class="v71-welcome-actions"><button type="button" id="v71WelcomeCards" class="btn-primary">Descubrir nuestras cartas</button><button type="button" id="v71WelcomeChat" class="btn-secondary">Abrir nuestro chat</button></div>
+  </section>
+</div>
+<div id="stickerMessageMenu" class="sticker-message-menu hidden" role="dialog" aria-modal="true" aria-labelledby="stickerMessageHeading" aria-hidden="true">
+  <button type="button" class="sticker-message-scrim" aria-label="Cerrar opciones del sticker"></button>
+  <section class="sticker-message-sheet">
+    <div class="sticker-message-grabber" aria-hidden="true"></div>
+    <div class="sticker-message-top"><div><p class="eyebrow">NUESTRA COLECCIÓN</p><h2 id="stickerMessageHeading">Opciones del sticker</h2></div><button type="button" id="stickerMessageDismiss" class="sticker-message-x" aria-label="Cerrar opciones">×</button></div>
+    <div id="stickerMessagePreview" class="sticker-message-preview"></div>
+    <p id="stickerMessageTitle" class="sticker-message-title"></p>
+    <div class="sticker-message-actions"><button type="button" id="stickerMessageFav" aria-pressed="false">☆ Agregar a favoritos</button><button type="button" id="stickerMessageSend">↗ Enviar otra vez</button><button type="button" id="stickerMessageReply">↩ Responder</button></div>
+    <p id="stickerMessageInfo" class="sticker-message-info"></p><p id="stickerMessageStatus" class="sticker-message-info" role="status" aria-live="polite"></p>
   </section>
 </div>
 <div id="v71NetworkAlert" class="v71-network-alert hidden" role="status" aria-live="polite">Sin conexión. Las fotos y mensajes necesitan internet para sincronizarse.</div>
