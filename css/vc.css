@@ -1,0 +1,49 @@
+/* FER & ALXS · V_C — capa de pulido. Aditiva: no cambia la estética ni las cartas. */
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{-webkit-tap-highlight-color:transparent}
+::selection{background:#ac3554;color:#fff}
+body{overscroll-behavior-y:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--gold,#e3ba88);outline-offset:3px;border-radius:8px}
+main:focus{outline:0}
+.vc-skip{position:fixed;left:12px;top:-60px;z-index:300;padding:10px 16px;border-radius:12px;background:#f0c6c8;color:#441326;font:700 14px system-ui,sans-serif;text-decoration:none;transition:top .2s ease}
+.vc-skip:focus{top:max(12px,env(safe-area-inset-top))}
+
+/* Entrada suave de cada sección */
+.page.active{animation:vcPageIn .38s cubic-bezier(.22,.8,.3,1) both}
+@keyframes vcPageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* Respuesta táctil coherente */
+button,.more-tile,.quick-tile,.featured-card{transition:transform .18s ease,filter .18s ease,background-color .2s ease,border-color .2s ease}
+button:active:not(:disabled),.more-tile:active,.quick-tile:active,.featured-card:active{transform:scale(.975)}
+button:disabled{opacity:.55;cursor:not-allowed}
+@media(hover:hover){.more-tile:hover,.quick-tile:hover{filter:brightness(1.12);border-color:#e4a8b47b}}
+
+/* Objetivos táctiles de al menos 44 px */
+.circle-arrow,.icon-btn,.chat-tool,.chat-send,.v71-close{min-width:44px;min-height:44px}
+input,select,textarea{font-size:max(16px,1em)} /* evita el zoom automático en iOS */
+
+/* Imágenes: aparecen con fundido en vez de saltar */
+img.vc-pending{opacity:0}
+img{transition:opacity .35s ease}
+img,video{max-width:100%}
+
+/* Barras de desplazamiento discretas */
+*{scrollbar-width:thin;scrollbar-color:#ac355488 transparent}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#ac355488;border-radius:8px}
+
+/* Contraste alto si el sistema lo pide */
+@media(prefers-contrast:more){:root{--muted:#e6c6cf;--line:rgba(255,224,225,.4)}.v71-hint,.subtle{color:#f3dcd8}}
+
+/* Movimiento reducido: apaga todas las animaciones */
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* Impresión: sin navegación ni adornos */
+@media print{.bottom-nav,.masthead,.ambient,.v71-home-tools,.vc-skip{display:none!important}body{background:#fff;color:#000}}
+
+/* V_G details combined with V_C accessibility rules. */
+.btn-primary,.hero-button,.btn-secondary{transition:transform .2s cubic-bezier(.2,.8,.2,1),filter .2s,box-shadow .2s}
+@media(hover:hover){.btn-primary:hover,.hero-button:hover{filter:brightness(1.1);box-shadow:0 12px 28px rgba(20,5,14,.55)}}
+@media(prefers-reduced-motion:reduce){.page.active{animation:none!important}}

@@ -178,7 +178,7 @@ function drawNotificationPanel(){notiPanel.replaceChildren();const title=documen
 
 function alertNew(kind){notificationHistory.push({text:'Novedad en '+kind,time:new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})});unread++;$('v7BellCount').textContent=unread;$('v7BellCount').classList.remove('hidden');
  if(document.visibilityState==='visible'&&typeof Notification!=='undefined'&&Notification.permission==='granted'){
-  try{new Notification('Fer & Alxs',{body:`Una novedad en ${kind}. Abre la aplicación para verla.`,icon:'./icon-192.png'})}catch{}}
+  try{new Notification('Fer & Alxs',{body:`Una novedad en ${kind}. Abre la aplicación para verla.`,icon:'./assets/icon-192.png'})}catch{}}
 }
 $('v7Bell').onclick=()=>{unread=0;$('v7BellCount').classList.add('hidden');drawNotificationPanel();notiPanel.classList.toggle('hidden')};
 // Suscripción Realtime, filtrada por RLS, sin contenido sensible en las notificaciones.
