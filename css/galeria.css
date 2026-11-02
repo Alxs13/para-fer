@@ -355,3 +355,7 @@
 .sticker-remove-btn:disabled{opacity:.45}
 .sticker-remove-btn:focus-visible,.sticker-manage-btn:focus-visible{outline:3px solid #ffd6a9;outline-offset:2px}
 @media(max-width:470px){.sticker-manage-btn{flex:1 1 120px}.chat-sticker-grid.is-managing .sticker-custom-tile{outline:1px solid #db94a966;border-radius:15px}}
+
+/* Fusión 7.4: gestión visible de todos los stickers importados en la colección mutua. */
+.chat-sticker-grid.is-managing .sticker-custom-tile{outline:1px solid #e8b4c277;border-radius:14px}
+.chat-sticker-grid.is-managing .sticker-custom-tile .sticker-remove-btn{display:inline-flex}

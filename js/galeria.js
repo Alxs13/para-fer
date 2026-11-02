@@ -1165,47 +1165,54 @@
   function setStickerManageMode(enabled) {
     stickerManageMode = enabled;
     stickerManageBtn.setAttribute('aria-pressed',String(enabled));
-    stickerManageBtn.textContent = enabled ? 'Terminar gestión' : 'Gestionar stickers';
+    stickerManageBtn.textContent = enabled ? 'Terminar de eliminar' : 'Eliminar stickers agregados';
     $('chatStickerGrid').classList.toggle('is-managing',enabled);
     renderStickers();
-    if(enabled)text($('stickerStatus'),'Pulsa la papelera del sticker que importaste para quitarlo. Los enviados seguirán en el chat.');
+    if(enabled)text($('stickerStatus'),'Pulsa la papelera en cualquier sticker importado por ti o por Fer. Se quitará para ambos; los ya enviados permanecerán en el chat.');
   }
   stickerManageBtn.addEventListener('click',()=>setStickerManageMode(!stickerManageMode));
 
   async function removeSavedSticker(s,button){
-    if (!activeUser || s.user_id!==activeUser.id || !stickerManageMode) return;
-    if (!confirm(`¿Eliminar «${s.name}» de la colección compartida? Si aparece en conversaciones anteriores, seguirá visible allí.`))return;
+    // Ambos administran la colección compartida. Solo el propietario puede borrar
+    // físicamente un sticker SIN mensajes; cualquiera puede archivarlo para ambos.
+    if (!activeUser || !stickerManageMode || s.archived_at) return;
+    if (!confirm(`¿Quitar «${s.name}» de los stickers de ambos? Los mensajes antiguos lo conservarán.`)) return;
     button.disabled=true;
     try {
-      // Detecta referencias antes de borrar: la FK además protege ante mensajes simultáneos.
-      const {count,error:countError}=await sb.from('couple_chat')
-        .select('id',{count:'exact',head:true}).eq('sticker_id',s.id);
-      if(countError)throw countError;
-      let keepHistory = (count||0)>0;
-      if(!keepHistory){
-        const {data:deleted,error:deleteError}=await sb.from('couple_stickers')
-          .delete().eq('id',s.id).eq('user_id',activeUser.id).select('id');
-        if(deleteError){
-          if(deleteError.code==='23503')keepHistory=true;
-          else throw deleteError;
-        }else if(!deleted?.length)throw new Error('No se pudo eliminar. Comprueba el permiso del propietario.');
-        else {
-          const {error:fileError}=await sb.storage.from(STICKER_BUCKET).remove([s.storage_path]);
-          if(fileError)text($('stickerStatus'),'Sticker eliminado, pero el archivo no se pudo limpiar del almacenamiento: '+friendly(fileError));
+      const own = s.user_id===activeUser.id;
+      let archived = !own;
+      if(own){
+        // Un sticker referenciado nunca se borra físicamente.
+        const {count,error:countError}=await sb.from('couple_chat')
+          .select('id',{count:'exact',head:true}).eq('sticker_id',s.id);
+        if(countError)throw countError;
+        archived=(count||0)>0;
+        if(!archived){
+          const {data:deleted,error:deleteError}=await sb.from('couple_stickers')
+            .delete().eq('id',s.id).eq('user_id',activeUser.id).select('id');
+          if(deleteError){
+            if(deleteError.code==='23503')archived=true;
+            else throw deleteError;
+          }else if(!deleted?.length){
+            throw new Error('No se pudo eliminar el sticker; comprueba los permisos.');
+          }else{
+            const {error:fileError}=await sb.storage.from(STICKER_BUCKET).remove([s.storage_path]);
+            if(fileError)console.warn('El archivo antiguo debe limpiarse manualmente:',fileError);
+          }
         }
       }
-      if(keepHistory){
-        const {data:archived,error:archiveError}=await sb.from('couple_stickers')
+      if(archived){
+        const {data:updated,error:updateError}=await sb.from('couple_stickers')
           .update({archived_at:new Date().toISOString()})
-          .eq('id',s.id).eq('user_id',activeUser.id).select('id');
-        if(archiveError)throw archiveError;
-        if(!archived?.length)throw new Error('No se pudo retirar el sticker de la colección.');
+          .eq('id',s.id).is('archived_at',null).select('id');
+        if(updateError)throw updateError;
+        if(!updated?.length)throw new Error('Ya se retiró el sticker o faltan permisos de edición.');
       }
       await loadStickers();
-      text($('stickerStatus'),keepHistory
-        ? 'Sticker retirado de la colección. Los mensajes enviados lo conservan.'
-        : 'Sticker eliminado de la colección y del almacenamiento.',true);
-    }catch(err){text($('stickerStatus'),'No se pudo eliminar: '+friendly(err));}
+      text($('stickerStatus'),archived
+        ? 'Sticker retirado de la colección compartida. Los mensajes anteriores lo conservan.'
+        : 'Sticker añadido eliminado de la colección y del almacenamiento.',true);
+    }catch(err){text($('stickerStatus'),'No se pudo quitar el sticker: '+friendly(err));}
     finally{button.disabled=false;}
   }
 
@@ -1234,9 +1241,9 @@
       const title=document.createElement('small');title.textContent=(sticker.pack_name?sticker.pack_name+' · ':'')+sticker.name;
       send.append(img,title);send.addEventListener('click',()=>sendCustomSticker(sticker.id));
       tile.append(send);
-      if(sticker.user_id===activeUser?.id){
+      {
         const del=document.createElement('button');del.type='button';del.className='sticker-remove-btn';
-        del.title='Eliminar '+sticker.name;del.setAttribute('aria-label','Eliminar sticker '+sticker.name);
+        del.title='Quitar sticker agregado '+sticker.name+' de la colección de los dos';del.setAttribute('aria-label','Quitar sticker agregado '+sticker.name);
         del.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 10v7M14 10v7"/></svg>';
         del.addEventListener('click',()=>removeSavedSticker(sticker,del));tile.append(del);
       }

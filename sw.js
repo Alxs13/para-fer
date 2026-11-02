@@ -1,6 +1,6 @@
 // Fer & Alxs V_C: cachea únicamente la interfaz pública (shell).
 // Nunca intercepta, almacena ni cachea peticiones de Supabase, fotos, videos o chat.
-const CACHE='fer-alxs-shell-fusion-7-3';
+const CACHE='fer-alxs-shell-fusion-7-4';
 const SHELL=['./','./index.html','./config.js','./manifest.webmanifest',
   './css/galeria.css','./css/mejoras.css','./css/vc.css',
   './js/galeria.js','./js/universo.js','./js/mejoras.js','./js/vc.js','./js/pdf-native.js',
