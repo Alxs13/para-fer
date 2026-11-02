@@ -1,0 +1,89 @@
+/* FER & ALXS 7.7 · pantallas de colección y chat a altura móvil */
+@media (max-width:719px){
+ body.fer77-immersive-cards,body.fer77-immersive-chat{height:100dvh;overflow:hidden;overscroll-behavior:none}
+ body.fer77-immersive-cards .masthead,body.fer77-immersive-chat .masthead{height:58px}
+ body.fer77-immersive-cards #main,body.fer77-immersive-chat #main{height:calc(100dvh - 58px);overflow:hidden}
+ body.fer77-immersive-cards #appView,body.fer77-immersive-chat #appView{height:100%;}
+ body.fer77-immersive-cards #appView>.app-topline,body.fer77-immersive-chat #appView>.app-topline{display:none}
+ #page-cards.page.active{height:calc(100dvh - 58px - 73px - env(safe-area-inset-bottom));display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:0 0 2px}
+ #page-cards .page-heading{flex:0 0 auto;padding:8px 0 0}
+ #page-cards .page-heading .eyebrow{font-size:9px;margin:0 0 3px}
+ #page-cards .page-heading h1{font-size:clamp(21px,5vw,30px);line-height:1.07;margin:0 0 4px}
+ #page-cards .deck-bar{flex:0 0 auto;margin:2px 12px 0;font-size:12px}
+ #page-cards #cardGrid{flex:1 1 auto;min-height:0;height:auto;align-items:center;padding-top:10px;padding-bottom:10px;scrollbar-width:none;overscroll-behavior-x:contain}
+ #page-cards .memory-card{height:min(100%,610px);min-height:0;aspect-ratio:0.68;flex:0 0 auto;width:auto;max-width:min(88vw,360px)}
+ #page-cards .memory-card-inner,#page-cards .memory-side{height:100%}
+ #page-cards .memory-front .photo-frame{height:68%;flex-shrink:1;min-height:0}
+ #page-cards .memory-content{min-height:0;flex:1;padding:10px 15px 13px;gap:4px}
+ #page-cards .memory-title{font-size:clamp(16px,4vw,21px)}
+ #page-cards .memory-content .card-actions{gap:5px}
+ #page-cards .small-btn{padding:7px 8px;font-size:10px}
+ #page-cards .back-body{min-height:0;gap:5px;padding:14px 15px 9px}
+ #page-cards .back-body h4{font-size:20px}
+ #page-cards .meta-list{overflow-y:auto;overscroll-behavior:contain;min-height:0}
+ #page-cards .meta-item{padding:5px 8px}
+ #page-cards .meta-item span{font-size:11px}
+ #page-cards .carousel-bottom{flex:0 0 42px;margin:0 auto 1px;gap:20px}
+ #page-cards .circle-arrow{height:37px;width:37px;font-size:19px}
+ #page-cards .dots{margin-top:2px}
+ #page-cards #filters{flex:0 0 auto;margin:3px 0 8px}
+ #page-cards #filters button{padding:5px 11px;font-size:11px}
+ #page-cards .center{display:none}
+ #page-chat.page.active{display:block;height:calc(100dvh - 58px - 73px - env(safe-area-inset-bottom));padding:0!important;overflow:hidden}
+ #page-chat .chat-shell{width:100%;height:100%!important;min-height:0!important;max-height:none;border-radius:0;border-left:0;border-right:0;border-top:0}
+ #page-chat .chat-bar{padding:8px 12px;min-height:58px}
+ #page-chat .chat-wall{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+ #page-chat .chat-compose{padding-bottom:9px}
+ .fer77-plus-menu{bottom:0}
+}
+@media (max-height:680px) and (max-width:719px){
+ #page-cards .page-heading h1{font-size:20px}
+ #page-cards .page-heading .eyebrow{display:none}
+ #page-cards .memory-front .photo-frame{height:62%}
+ #page-cards .bubble{font-size:10px;padding:7px 9px}
+}
+/* UI estilo mensajería, sin copiar activos de WhatsApp */
+.fer77-reaction-chips{display:flex;flex-wrap:wrap;gap:4px;margin:4px 5px 1px;max-width:100%}
+.fer77-reaction-chip{border:1px solid #987089;background:#4e2944;border-radius:99px;color:#fff5f4;padding:2px 8px;font-size:14px;min-height:26px}
+.fer77-reaction-chip.mine{border-color:#f4b9a7;background:#8e3c59}
+.fer77-message-overlay{position:fixed;inset:0;z-index:150;display:flex;align-items:flex-end;justify-content:center}
+.fer77-action-scrim{position:absolute;inset:0;border:0;background:#100410b9;width:100%;height:100%}
+.fer77-action-sheet{position:relative;z-index:1;width:min(520px,100%);border-radius:26px 26px 0 0;background:linear-gradient(155deg,#572039,#210c1b);border:1px solid #b8788d;box-shadow:0 -12px 50px #13020cd9;padding:11px 16px calc(21px + env(safe-area-inset-bottom))}
+.fer77-drag-bar{width:40px;height:4px;margin:0 auto 15px;border-radius:9px;background:#e3a8b9}
+.fer77-action-sheet h2{font:500 25px var(--serif);margin:0 0 7px}
+.fer77-menu-intro{font-size:12px;color:#e0b7c4;line-height:1.5;margin:0 0 12px}
+.fer77-reaction-choices{display:flex;gap:4px;overflow-x:auto;padding:6px 0 12px;scrollbar-width:none}
+.fer77-emoji-option{position:relative;flex:0 0 42px;width:42px;height:46px;border:none;border-radius:15px;background:#ffffff0f;font-size:25px}
+.fer77-emoji-option.is-pref{outline:2px solid #ecc3a2;background:#a14f6b}
+.fer77-emoji-option.is-pref:after{content:'★';position:absolute;top:-8px;right:-2px;color:#ffe8c2;font-size:12px}
+.fer77-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fer77-menu-grid button{display:flex;align-items:center;gap:9px;min-height:48px;text-align:left;border-radius:14px;border:1px solid #ad708566;background:#ffffff10;color:#ffe9e8;padding:10px;font-size:22px}
+.fer77-menu-grid button span{font-size:13px}
+.fer77-menu-cancel{width:100%;border:0;background:#9d4261;color:#fff0eb;min-height:44px;border-radius:14px;margin-top:12px}
+.chat-picker-tabs{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}
+.chat-picker-tabs button{white-space:nowrap}
+.chat-gif-picker{display:grid;gap:10px}
+.gif-search-row{display:flex;gap:7px;align-items:center}
+.gif-search-row input,.gif-key-config input{min-width:0;width:100%;border:1px solid #a87389;background:#280d1e;color:#fff;padding:12px;border-radius:13px}
+.gif-search-btn{border:0;padding:11px 14px;background:#a54a67;color:white;border-radius:13px}
+.gif-key-config{padding:10px 12px;background:#48213a;border:1px solid #b3738b;border-radius:16px;display:grid;gap:9px;color:#f8d9dc;font-size:12px}
+.gif-key-config p{margin:0;line-height:1.5}.gif-key-config a{color:#ffceb0}
+.gif-key-config label{display:grid;gap:5px}
+.gif-result-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;max-height:220px;overflow-y:auto;overscroll-behavior:contain}
+.fer77-gif-item{border:1px solid #c57e95;border-radius:12px;overflow:hidden;padding:0;background:#2b1324;aspect-ratio:1.1}
+.fer77-gif-item img{height:100%;width:100%;object-fit:cover}
+.gif-status{font-size:12px;color:#eac8d2;line-height:1.4;margin:0}
+.gif-attribution{color:#f3cda0;font-size:11px;text-decoration:none;justify-self:end}
+.fer77-gif-message{display:block;max-width:min(235px,65vw);width:100%;max-height:275px;object-fit:contain;border-radius:12px}
+.fer77-gif-credit{display:block;font-size:10px;margin-top:5px;color:#ffe0ce;text-align:right;text-decoration:underline}
+.fer77-plus-menu{position:absolute;right:8px;bottom:69px;z-index:8;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;width:min(420px,calc(100% - 16px));border:1px solid #a87087;border-radius:20px;background:linear-gradient(155deg,#602643,#2c0f21);box-shadow:0 16px 40px #080108c0}
+.fer77-plus-menu button{min-height:55px;border:1px solid #c49aa45c;border-radius:13px;background:#ffffff0a;color:#ffdddd;display:flex;align-items:center;text-align:left;gap:8px;font-size:22px;padding:8px}
+.fer77-plus-menu button span{font-size:12px}
+@media(prefers-reduced-motion:reduce){.fer77-message-overlay,.fer77-action-sheet{animation:none!important}}
+
+@media(max-width:719px){
+ body.fer77-immersive-cards #fabAdd,body.fer77-immersive-chat #fabAdd{display:none!important}
+ #page-cards .deck-bar{display:flex;align-items:center;justify-content:space-between;gap:7px}
+ #page-cards .fer77-cards-add{border:1px solid #d0a5a8;border-radius:20px;background:#823653;color:#fff1e5;padding:7px 11px;min-height:33px;font-size:11px;white-space:nowrap}
+ #page-cards .deck-help{font-size:10px;letter-spacing:.09em;white-space:nowrap}
+}

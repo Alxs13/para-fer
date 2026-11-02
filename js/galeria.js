@@ -164,6 +164,7 @@
       .subscribe();
     chatSub = sb.channel('couple-chat-live')
       .on('postgres_changes',{event:'*',schema:'public',table:'couple_chat'},()=>{if(activeUser && page==='chat')loadChat(true,true).catch(console.warn);})
+      .on('postgres_changes',{event:'*',schema:'public',table:'couple_chat_reactions'},()=>{if(activeUser&&page==='chat')loadReactions77().then(redraw77).catch(console.warn);})
       .subscribe();
     miscSub = sb.channel('couple-chat-extras-live')
       .on('postgres_changes',{event:'*',schema:'public',table:'couple_stickers'},()=>{if(activeUser)loadStickers().catch(console.warn);})
@@ -198,6 +199,9 @@
     if (!sectionNames.includes(name)) name = 'home';
     if(name !== 'chat'){ const openMenu=document.getElementById('stickerMessageMenu');if(openMenu&&!openMenu.classList.contains('hidden')){openMenu.classList.add('hidden');openMenu.setAttribute('aria-hidden','true');} }
     page = name;
+    document.body.classList.toggle("fer77-immersive-cards",name==="cards");
+    document.body.classList.toggle("fer77-immersive-chat",name==="chat");
+    const pm=document.getElementById("chatPlusMenu");if(pm)pm.classList.add("hidden");
     appView.dataset.currentPage=name;
     document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.dataset.page === name));
     document.querySelectorAll('.bottom-nav button[data-go]').forEach(el => {
@@ -229,7 +233,7 @@
     uploadOverlay.setAttribute('aria-hidden','true');
     document.body.style.overflow='';
   }
-  ['fabAdd','homeAddPhoto','binderAdd'].forEach(id => $(id).addEventListener('click',openUpload));
+  ['fabAdd','homeAddPhoto','binderAdd','cardsAdd'].forEach(id => $(id).addEventListener('click',openUpload));
   $('closeUpload').addEventListener('click',closeUpload);
   document.querySelector('[data-close="upload"]').addEventListener('click',closeUpload);
   document.addEventListener('keydown', e => {
@@ -1071,6 +1075,147 @@
   let chatBusy = false;
   let chatRequest = 0;
   let replyDraft = null;
+  // V7.7 · Reacciones compartidas, emoji favorito y menú de mensajes.
+  let chatReactions=[];
+  let reactionEnabled=true;
+  let reactionSequence=0;
+  const menu77=$('fer77MessageMenu');
+  let message77=null;
+  let preferredEmoji='❤️';
+  const reactions77=['❤️','🥰','😂','😘','👍','😮','😢','🔥','💀','🤔'];
+  function emojiPrefKey(){return 'fer-alxs-fav-emoji-'+(activeUser?.id||'');}
+  function readPref(){try{preferredEmoji=localStorage.getItem(emojiPrefKey())||'❤️';}catch{preferredEmoji='❤️';}}
+  function writePref(emoji){preferredEmoji=emoji;try{localStorage.setItem(emojiPrefKey(),emoji);}catch{}}
+  function redraw77(){const before=chatWall.scrollHeight-chatWall.scrollTop;renderChat(false,before);}
+  async function loadReactions77(){
+    if(!activeUser||!chatMessages.length){chatReactions=[];return;}
+    const ids=chatMessages.map(x=>x.id);
+    const {data,error}=await sb.from('couple_chat_reactions').select('message_id,user_id,emoji').in('message_id',ids);
+    if(error){reactionEnabled=false;chatReactions=[];return;}
+    reactionEnabled=true;chatReactions=data||[];
+  }
+  async function react77(item,emoji){
+    if(!activeUser)return;
+    if(!reactionEnabled){text($('chatStatus'),'Para activar reacciones, ejecuta SQL 09_reacciones_gif.sql en Supabase.');return;}
+    const previous=chatReactions.find(r=>r.message_id===item.id&&r.user_id===activeUser.id);
+    try{
+      const {error}=previous?.emoji===emoji
+       ? await sb.from('couple_chat_reactions').delete().eq('message_id',item.id).eq('user_id',activeUser.id)
+       : await sb.from('couple_chat_reactions').upsert({message_id:item.id,user_id:activeUser.id,emoji},{onConflict:'message_id,user_id'});
+      if(error)throw error;
+      if(previous?.emoji===emoji)chatReactions=chatReactions.filter(r=>r!==previous);
+      else if(previous)previous.emoji=emoji;
+      else chatReactions.push({message_id:item.id,user_id:activeUser.id,emoji});
+      redraw77();
+      if(navigator.vibrate)navigator.vibrate(12);
+    }catch(err){text($('chatStatus'),'No se pudo reaccionar: '+friendly(err));}
+  }
+  function closeMessage77(){if(!menu77||menu77.classList.contains('hidden'))return;hide(menu77);menu77.setAttribute('aria-hidden','true');message77=null;}
+  function openMessage77(item){
+    message77=item;readPref();
+    $('fer77MenuTitle').textContent='Mensaje de '+authorName(item);
+    const choices=$('fer77ReactionChoices');choices.replaceChildren();
+    reactions77.forEach(emoji=>{
+      const b=document.createElement('button');b.type='button';b.textContent=emoji;
+      b.className='fer77-emoji-option'+(emoji===preferredEmoji?' is-pref':'');
+      b.setAttribute('aria-label','Reaccionar con '+emoji);
+      b.title='Mantén presionado para elegir emoji favorito';
+      b.addEventListener('click',async()=>{closeMessage77();await react77(item,emoji);});
+      let timer=0; b.addEventListener('pointerdown',()=>{timer=setTimeout(()=>{writePref(emoji);choices.querySelectorAll('button').forEach(el=>el.classList.remove('is-pref'));b.classList.add('is-pref');text($('chatStatus'),'Tu reacción rápida ahora es '+emoji,true);},650);});
+      ['pointerup','pointerleave','pointercancel'].forEach(evt=>b.addEventListener(evt,()=>clearTimeout(timer)));
+      choices.append(b);
+    });
+    $('fer77MenuCopy').disabled=!item.body;
+    show(menu77);menu77.setAttribute('aria-hidden','false');$('fer77MenuReply').focus({preventScroll:true});
+  }
+  $('fer77MenuClose').addEventListener('click',closeMessage77);
+  menu77.querySelector('.fer77-action-scrim').addEventListener('click',closeMessage77);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu77.classList.contains('hidden'))closeMessage77();});
+  $('fer77MenuReply').addEventListener('click',()=>{if(!message77)return;const item=message77;closeMessage77();setReply(item);});
+  $('fer77MenuCopy').addEventListener('click',async()=>{if(!message77)return;const body=message77.body;closeMessage77();try{await navigator.clipboard.writeText(body);text($('chatStatus'),'Mensaje copiado.',true);}catch{text($('chatStatus'),'No se pudo copiar desde este navegador.');}});
+  $('fer77MenuShare').addEventListener('click',async()=>{if(!message77)return;const body=message77.body||'Recuerdo compartido en Fer & Alxs';closeMessage77();if(navigator.share)try{await navigator.share({text:body});}catch{}else try{await navigator.clipboard.writeText(body);}catch{}});
+  $('fer77MenuForward').addEventListener('click',async()=>{
+    if(!message77||!activeUser||chatBusy)return;
+    const item=message77;closeMessage77();
+    const data={user_id:activeUser.id,kind:item.kind,body:item.body||'',sticker_code:item.sticker_code||null,sticker_id:item.sticker_id||null,
+      attachment_path:item.attachment_path||null,file_name:item.file_name||null,file_mime:item.file_mime||null,
+      reply_preview:'Reenviado de '+authorName(item),reply_author:authorName(item)};
+    // Evitar duplicar referencias de archivos de otros usuarios: solo reenviar texto, GIF y stickers.
+    if(!['text','gif','sticker'].includes(item.kind)){text($('chatStatus'),'Para reenviar este archivo, adjúntalo nuevamente desde tu teléfono.');return;}
+    const {error}=await sb.from('couple_chat').insert(data);
+    if(error)text($('chatStatus'),friendly(error));else await loadChat(true,true);
+  });
+  function attachMessage77(item,bubble,wrapper){
+    const related=chatReactions.filter(r=>r.message_id===item.id);
+    if(related.length){const chips=document.createElement('div');chips.className='fer77-reaction-chips';
+      const byEmoji=new Map();related.forEach(r=>byEmoji.set(r.emoji,(byEmoji.get(r.emoji)||0)+1));
+      byEmoji.forEach((n,emoji)=>{const b=document.createElement('button');b.type='button';b.textContent=emoji+(n>1?' '+n:'');
+        b.className='fer77-reaction-chip'+(related.some(r=>r.emoji===emoji&&r.user_id===activeUser?.id)?' mine':'');
+        b.addEventListener('click',()=>react77(item,emoji));chips.append(b);});wrapper.append(chips);}
+    const trigger=e=>{if(e.target.closest('button,a,audio,video,input'))return;openMessage77(item);};
+    bubble.addEventListener('contextmenu',e=>{e.preventDefault();trigger(e);});
+    let timer=0,startX=0,startY=0,lastTap=0;
+    bubble.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'||e.target.closest('button,a,audio,video'))return;startX=e.clientX;startY=e.clientY;timer=setTimeout(()=>openMessage77(item),570);});
+    bubble.addEventListener('pointermove',e=>{if(Math.abs(e.clientX-startX)>12||Math.abs(e.clientY-startY)>12)clearTimeout(timer);});
+    bubble.addEventListener('pointerup',e=>{
+      clearTimeout(timer);
+      if(e.pointerType==='mouse'||e.target.closest('button,a,audio,video'))return;
+      const now=Date.now();if(now-lastTap<360){lastTap=0;e.preventDefault();react77(item,preferredEmoji);}else lastTap=now;
+    });
+    bubble.addEventListener('pointercancel',()=>clearTimeout(timer));
+    bubble.addEventListener('dblclick',e=>{if(window.matchMedia('(pointer:coarse)').matches||e.target.closest('button,a,audio,video'))return;e.preventDefault();react77(item,preferredEmoji);});
+  }
+  // GIPHY requiere API key pública; la clave se conserva solo en el navegador y jamás es clave de Supabase.
+  function giphyKey77(){try{return (window.COUPLE_CONFIG?.GIPHY_API_KEY||localStorage.getItem('fer-alxs-giphy-key')||'').trim();}catch{return window.COUPLE_CONFIG?.GIPHY_API_KEY||'';}}
+  function isGiphyUrl77(url){try{const u=new URL(url);return u.protocol==='https:'&&/^media[0-9]*\.giphy\.com$/.test(u.hostname)&&u.pathname.length<300;}catch{return false;}}
+  async function searchGifs77(){
+    const query=$('chatGifQuery').value.trim().slice(0,50),key=giphyKey77(),grid=$('chatGifResults');
+    if(!key){show($('chatGifKeyConfig'));text($('chatGifStatus'),'Primero configura tu clave web de GIPHY.');return;}
+    if(!query){text($('chatGifStatus'),'Escribe qué GIF quieres buscar.');return;}
+    grid.replaceChildren();text($('chatGifStatus'),'Buscando GIF…');
+    const url=new URL('https://api.giphy.com/v1/gifs/search');
+    url.searchParams.set('api_key',key);url.searchParams.set('q',query);url.searchParams.set('limit','18');url.searchParams.set('rating','g');url.searchParams.set('lang','es');
+    try{const response=await fetch(url.href,{cache:'no-store'});if(!response.ok)throw new Error(response.status===403?'Revisa la clave pública de GIPHY.':'GIPHY devolvió '+response.status);
+      const payload=await response.json();let count=0;
+      for(const hit of payload.data||[]){
+        const gifUrl=hit.images?.fixed_width?.url||hit.images?.fixed_height?.url;
+        if(!isGiphyUrl77(gifUrl))continue;
+        const b=document.createElement('button');b.type='button';b.className='fer77-gif-item';b.title='Enviar este GIF';
+        const image=document.createElement('img');image.src=gifUrl;image.loading='lazy';image.alt=hit.title||'GIF de GIPHY';
+        b.append(image);b.addEventListener('click',()=>sendGif77(gifUrl));grid.append(b);count++;
+      }
+      text($('chatGifStatus'),count?count+' GIF disponibles · Toca uno para enviarlo.':'No encontré GIF. Intenta con otra palabra.');
+    }catch(err){text($('chatGifStatus'),'No se pudo buscar: '+friendly(err)+'. También puedes adjuntar un GIF desde archivos.');}
+  }
+  async function sendGif77(url){
+    if(!isGiphyUrl77(url)||!activeUser||chatBusy)return;
+    chatBusy=true;try{const {error}=await sb.from('couple_chat').insert({user_id:activeUser.id,kind:'gif',body:url,
+      reply_preview:replyDraft?.body?.slice(0,140)||'',reply_author:replyDraft?.author?.slice(0,35)||''});if(error)throw error;
+      hide($('chatPicker'));clearReply();await loadChat(true);chatWall.scrollTop=chatWall.scrollHeight;
+    }catch(err){text($('chatStatus'),'No se pudo enviar GIF: '+friendly(err)+' (requiere SQL 09).');}finally{chatBusy=false;}
+  }
+  $('chatGifSearch').addEventListener('click',searchGifs77);
+  $('chatGifQuery').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchGifs77();}});
+  $('chatGifKeySave').addEventListener('click',()=>{const key=$('chatGifApiKey').value.trim();if(!key)return;
+    try{localStorage.setItem('fer-alxs-giphy-key',key);hide($('chatGifKeyConfig'));text($('chatGifStatus'),'Clave guardada en este celular.',true);}catch{text($('chatGifStatus'),'No se pudo guardar la clave.');}});
+  const originalGifTab=$('chatGifTab');
+  originalGifTab.addEventListener('click',()=>{
+    for(const id of ['chatEmojiGrid','chatStickerGrid','chatFavoritesGrid','chatStickerImport'])hide($(id));
+    document.querySelectorAll('.chat-picker-tabs button').forEach(b=>b.classList.toggle('active',b===originalGifTab));
+    show($('chatGifPicker'));if(!giphyKey77())show($('chatGifKeyConfig'));
+    $('chatGifQuery').focus({preventScroll:true});
+  });
+  // La pestaña GIF usa el mismo selector; restaurar la pestaña apropiada al pulsar las anteriores.
+  ['chatEmojiTab','chatStickerTab','chatFavoritesTab'].forEach(id=>$(id).addEventListener('click',()=>hide($('chatGifPicker'))));
+  const plusMenu=$('chatPlusMenu');
+  $('chatAttachBtn').addEventListener('click',e=>{e.stopImmediatePropagation();e.preventDefault();plusMenu.classList.toggle('hidden');});
+  plusMenu.querySelectorAll('[data-plus]').forEach(button=>button.addEventListener('click',()=>{
+    const action=button.dataset.plus;hide(plusMenu);
+    if(action==='photo')$('chatAttachInput').click();
+    if(action==='gif'||action==='sticker'){show($('chatPicker'));if(action==='gif')$('chatGifTab').click();else $('chatStickerTab').click();}
+    if(action==='camera')goPage('studio');if(action==='music')goPage('music');if(action==='map')goPage('places');
+  }));
+
   const CHAT_BATCH = 50;
   const stickerCatalog = [
     {id:'te-amo',title:'TE AMO',subtitle:'hasta el infinito',symbol:'♥',color:'rose'},
@@ -1219,6 +1364,9 @@
         btn.setAttribute('aria-label','Opciones para sticker «'+stickerById(item.sticker_code).title+'»: favoritos, reenviar o responder');
         const visual=document.createElement('div');visual.innerHTML=stickerHTML(item.sticker_code);btn.append(visual.firstChild);
         btn.addEventListener('click',()=>openStickerMessageMenu(item,btn));bubble.append(btn);
+      }else if(item.kind==='gif' && isGiphyUrl77(item.body)){
+        const img=document.createElement('img');img.className='fer77-gif-message';img.src=item.body;img.alt='GIF compartido desde GIPHY';img.loading='lazy';img.decoding='async';bubble.append(img);
+        const source=document.createElement('a');source.href='https://giphy.com/';source.target='_blank';source.rel='noopener noreferrer';source.className='fer77-gif-credit';source.textContent='via GIPHY';bubble.append(source);
       }else if(['file','audio'].includes(item.kind) && item.attachment_path){
         const fileBox=document.createElement('div');fileBox.className='chat-attachment';
         const fileName=document.createElement('span');fileName.textContent=item.file_name||'Archivo adjunto';
@@ -1257,7 +1405,7 @@
           await loadChat(true,true);
         }
       });meta.append(del);}
-      wrapper.append(header,bubble,meta);frag.appendChild(wrapper);
+      wrapper.append(header,bubble,meta);attachMessage77(item,bubble,wrapper);frag.appendChild(wrapper);
     }
     chatTimeline.replaceChildren(frag);
     $('chatEmpty').classList.toggle('hidden',chatMessages.length>0);
@@ -1267,6 +1415,7 @@
   }
   async function loadChat(reset=false,preserve=false){
     if(!activeUser)return;
+    readPref();
     const req=++chatRequest;
     const oldHeight=chatWall.scrollHeight;
     const nearBottom=chatWall.scrollHeight-chatWall.scrollTop-chatWall.clientHeight<140;
@@ -1281,6 +1430,7 @@
     chatMessages=reset?part:part.concat(chatMessages);
     chatOffset=start+(data||[]).length;
     chatMore=(data||[]).length===CHAT_BATCH;
+    await loadReactions77();
     renderChat(reset?(nearBottom||!preserve):false,reset?before:(oldHeight-chatWall.scrollTop));
     text($('chatStatus'),'');
   }
@@ -1635,13 +1785,14 @@
         fetchAll('couple_saving_entries','id,goal_id,user_id,amount_clp,note,created_at,backup_source_id')
       ]);
       const allFavorites=await fetchAll('couple_sticker_favorites','sticker_key,added_by,created_at');
+      const allReactions=await fetchAll('couple_chat_reactions','message_id,user_id,emoji,created_at');
       const zip = new JSZip();
       const people = Object.fromEntries(members.map(m => [m.user_id, m.display_name]));
       const manifest = {
         format: 'fer-alxs-backup', version: 5,
         exported_at: new Date().toISOString(),
         members: members.map(m => ({ user_id: m.user_id, display_name:m.display_name })),
-        photos: [], notes: [], songs:[], videos:[], chat:[], stickers:[], favorites:allFavorites.map(f=>f.sticker_key), goals:allGoals, entries:allEntries
+        photos: [], notes: [], songs:[], videos:[], chat:[], reactions:allReactions, stickers:[], favorites:allFavorites.map(f=>f.sticker_key), goals:allGoals, entries:allEntries
       };
       const human = ['FER & ALXS · CÁPSULA DEL TIEMPO', `Exportado el ${new Date().toLocaleString('es-CL')}`, ''];
       for (const [index, row] of allPhotos.entries()) {
@@ -1760,14 +1911,16 @@
       if(data.version>=3 && (!Array.isArray(data.songs)||!Array.isArray(data.videos)))throw new Error('El respaldo nuevo no tiene sección de canciones o videos.');
       if(data.version>=4 && (!Array.isArray(data.chat)||!Array.isArray(data.stickers)||!Array.isArray(data.goals)||!Array.isArray(data.entries)))throw new Error('Faltan datos de la versión 4 del respaldo.');
       if(data.chat!=null && (!Array.isArray(data.chat)||data.chat.length>20000))throw new Error('Chat inválido o demasiado grande para restaurar.');
+      if(data.reactions != null && (!Array.isArray(data.reactions)||data.reactions.length>40000||data.reactions.some(r=>!validSourceId(r.message_id)||!validSourceId(r.user_id)||typeof r.emoji!=='string'||r.emoji.length>16)))throw new Error('Reacciones inválidas en respaldo.');
       if(data.favorites != null && (!Array.isArray(data.favorites)||data.favorites.length>300||data.favorites.some(k=>typeof k!=='string'||!/^(builtin:[a-z0-9_-]{1,60}|custom:[a-f0-9-]{36})$/.test(k))))throw new Error('Favoritos inválidos en el respaldo.');
       if((data.stickers||[]).length>200||(data.goals||[]).length>1000||(data.entries||[]).length>20000)throw new Error('Los stickers o ahorros superan el límite permitido.');
       for(const s of (data.stickers||[])){
         if(!validSourceId(s.id)||!new RegExp(`^stickers/${s.id}\\.(png|webp|gif)$`,'i').test(s.file)||!zip.file(s.file)||zip.file(s.file)?._data?.uncompressedSize>2*1024*1024)throw new Error('Sticker incompatible en respaldo.');
       }
       for(const msg of (data.chat||[])){
-        if(!validSourceId(msg.id)||!['text','sticker','file','audio'].includes(msg.kind)||typeof msg.body!=='string'||msg.body.length>1500)throw new Error('El respaldo contiene un mensaje incompatible.');
+        if(!validSourceId(msg.id)||!['text','sticker','file','audio','gif'].includes(msg.kind)||typeof msg.body!=='string'||msg.body.length>1500)throw new Error('El respaldo contiene un mensaje incompatible.');
         if(msg.kind==='sticker' && !stickerById(msg.sticker_code) && !validSourceId(msg.sticker_id))throw new Error('Sticker del chat inválido.');
+        if(msg.kind==='gif'&&!isGiphyUrl77(msg.body))throw new Error('URL de GIF inválida en respaldo.');
         if(['file','audio'].includes(msg.kind)){
           if(!new RegExp(`^chat/${msg.id}\\.(pdf|txt|csv|jpg|png|webp|gif|zip|docx|xlsx|webm|ogg|m4a)$`,'i').test(msg.file)||!zip.file(msg.file)||zip.file(msg.file)?._data?.uncompressedSize>12*1024*1024)throw new Error('Adjunto no válido en el respaldo.');
         }
@@ -1963,9 +2116,28 @@
         if(error){if(path)await sb.storage.from(CHAT_FILES_BUCKET).remove([path]).catch(()=>{});throw error;}
         chatIds.add(sourceId);restoredChat++;
       }
+      // Restaurar únicamente las reacciones propias: RLS impide atribuir reacciones a Fer desde la cuenta de Alxs y viceversa.
+      // Las reacciones de ambas personas permanecen guardadas en respaldo.json.
+      let restoredReactions=0;
+      if(Array.isArray(data.reactions)&&data.reactions.length){
+        const originalMembers=Array.isArray(data.members)?data.members:[];
+        const myName=members.find(m=>m.user_id===activeUser.id)?.display_name;
+        const ownSourceIds=new Set(originalMembers.filter(m=>m.display_name===myName).map(m=>m.user_id));
+        ownSourceIds.add(activeUser.id);
+        const currentChat=await fetchAll('couple_chat','id,backup_source_id');
+        const msgMap=new Map(currentChat.flatMap(row=>[[row.id,row.id],...(row.backup_source_id?[[row.backup_source_id,row.id]]:[])]));
+        const existingRx=await fetchAll('couple_chat_reactions','message_id,user_id');
+        const ownedSet=new Set(existingRx.filter(r=>r.user_id===activeUser.id).map(r=>r.message_id));
+        for(const r of data.reactions){
+          const id=msgMap.get(r.message_id);if(!id||ownedSet.has(id)||!ownSourceIds.has(r.user_id))continue;
+          const {error}=await sb.from('couple_chat_reactions').insert({message_id:id,user_id:activeUser.id,emoji:r.emoji});
+          if(error)throw new Error('No se pudieron restaurar reacciones propias: '+friendly(error));
+          ownedSet.add(id);restoredReactions++;
+        }
+      }
       if(data.version===5 && window.FerV7Backup?.restore)await window.FerV7Backup.restore({data,zip,sb,activeUser});
       await Promise.all([loadPhotos(true),loadNotes(),loadVideos(),loadSongs(),loadStickers(),loadFavoriteStickers(),loadSavings(),loadChat(true)]);
-      text($('backupMessage'), `Restauración terminada: ${restoredPhotos} fotos, ${restoredVideos} videos, ${restoredSongs} canciones y ${restoredNotes} notas, ${restoredChat} mensajes, ${restoredStickers} stickers, ${restoredGoals} metas y ${restoredEntries} movimientos; ${skipped} ya existían.`, true);
+      text($('backupMessage'), `Restauración terminada: ${restoredPhotos} fotos, ${restoredVideos} videos, ${restoredSongs} canciones y ${restoredNotes} notas, ${restoredChat} mensajes, ${restoredStickers} stickers, ${restoredGoals} metas, ${restoredEntries} movimientos y ${restoredReactions} reacciones propias; ${skipped} ya existían.`, true);
 
       backupProgress('Restauración completada.', 1);
     } catch(err) {

@@ -6,14 +6,14 @@
 <meta name="color-scheme" content="dark"><meta name="robots" content="noindex,nofollow">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Fer & Alxs"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta property="og:title" content="Fer & Alxs · Nuestro universo"><meta property="og:description" content="Un espacio privado para dos."><meta property="og:type" content="website">
-<title>Fer & Alxs · Nuestro universo · Fusión 7.6</title>
+<title>Fer & Alxs · Nuestro universo · Fusión 7.7</title>
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/icon-192.png"><link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap">
-<link rel="stylesheet" href="css/galeria.css?v=76"><link rel="stylesheet" href="css/mejoras.css?v=76"><link rel="stylesheet" href="css/vc.css?v=76">
-<script defer src="config.js?v=76"></script>
+<link rel="stylesheet" href="css/galeria.css?v=77"><link rel="stylesheet" href="css/mejoras.css?v=77"><link rel="stylesheet" href="css/vc.css?v=77"><link rel="stylesheet" href="css/experiencia77.css?v=77">
+<script defer src="config.js?v=77"></script>
 <script defer src="vendor/jszip.min.js"></script>
-<script defer src="js/pdf-native.js?v=76"></script>
+<script defer src="js/pdf-native.js?v=77"></script>
 <script>
 // Carga controlada: la aplicación se inicia solo después de tener la librería.
 // Si ambos CDN fallan, el usuario ve un diagnóstico explícito.
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
   ];
   function startApp(){
     const chain=['js/galeria.js','js/universo.js','js/mejoras.js','js/vc.js'];
-    (function next(i){ if(i>=chain.length)return; const sc=document.createElement('script'); sc.src=chain[i]+'?v=76'; sc.onload=function(){next(i+1)}; sc.onerror=function(){ if(i===0){ var w=document.getElementById('cloudWarning'); if(w){w.textContent='No se pudo cargar la aplicación. Revisa tu conexión y recarga.';w.classList.remove('hidden');} } else next(i+1); }; document.body.appendChild(sc); })(0);
+    (function next(i){ if(i>=chain.length)return; const sc=document.createElement('script'); sc.src=chain[i]+'?v=77'; sc.onload=function(){next(i+1)}; sc.onerror=function(){ if(i===0){ var w=document.getElementById('cloudWarning'); if(w){w.textContent='No se pudo cargar la aplicación. Revisa tu conexión y recarga.';w.classList.remove('hidden');} } else next(i+1); }; document.body.appendChild(sc); })(0);
   }
   function load(index){
     if(window.supabase){startApp();return;} if(index>=urls.length){ const w=document.getElementById('cloudWarning'); if(w){w.textContent='No se pudo cargar la librería de Supabase. Comprueba la conexión e inténtalo otra vez.';w.classList.remove('hidden');} return; }
@@ -69,8 +69,8 @@ document.addEventListener('DOMContentLoaded', function () {
     </section>
 
     <section class="page" data-page="cards" id="page-cards">
-      <div class="page-heading"><p class="eyebrow">EL MAZO DE RECUERDOS</p><h1>Un momento<br><em>a la vez.</em></h1><p>Desliza a los lados para recorrer las cartas. Toca una para descubrir lo que hay detrás.</p></div>
-      <div class="deck-bar"><span id="countText">Cargando colección…</span><span class="deck-help">DESLIZA <b>↔</b></span></div>
+      <div class="page-heading"><p class="eyebrow">EL MAZO DE RECUERDOS</p><h1>Un momento<br><em>a la vez.</em></h1><p>Desliza a los lados para recorrer las cartas. Toca una para girarla. La pantalla permanece fija para recorrerlas sin subir y bajar.</p></div>
+      <div class="deck-bar"><span id="countText">Cargando colección…</span><span class="deck-help">DESLIZA <b>↔</b></span><button type="button" id="cardsAdd" class="fer77-cards-add" aria-label="Agregar una carta">＋ Crear</button></div>
       <div id="cardGrid" class="card-grid" aria-live="polite"></div>
       <div class="carousel-bottom"><button type="button" id="prevCard" class="circle-arrow" aria-label="Carta anterior">←</button><div><span id="activeCardNum">0</span><span class="pagination-divider"> / </span><span id="photoCount">0</span><div class="dots" id="cardDots"></div></div><button type="button" id="nextCard" class="circle-arrow" aria-label="Siguiente carta">→</button></div>
       <div class="center"><button id="loadMoreBtn" class="btn-secondary hidden" type="button">Cargar más cartas</button></div>
@@ -99,7 +99,13 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
         <div id="chatReplyBar" class="chat-reply-bar hidden"><div><small>Respondiendo a <b id="chatReplyName"></b></small><p id="chatReplyText"></p></div><button type="button" id="chatReplyCancel" aria-label="Cancelar respuesta">×</button></div>
         <div id="chatPicker" class="chat-picker hidden">
-          <div class="chat-picker-tabs"><button type="button" id="chatEmojiTab" class="active">Emojis</button><button type="button" id="chatStickerTab">Todos</button><button type="button" id="chatFavoritesTab" aria-label="Ver los stickers favoritos compartidos"><span aria-hidden="true">★</span> Favoritos <span id="favCount" class="favorite-count">0</span></button></div>
+          <div class="chat-picker-tabs"><button type="button" id="chatEmojiTab" class="active">Emojis</button><button type="button" id="chatStickerTab">Todos</button><button type="button" id="chatFavoritesTab" aria-label="Ver los stickers favoritos compartidos"><span aria-hidden="true">★</span> Favoritos <span id="favCount" class="favorite-count">0</span></button><button type="button" id="chatGifTab" aria-label="Buscar GIF en internet">GIF</button></div>
+          <div id="chatGifPicker" class="chat-gif-picker hidden">
+            <div class="gif-search-row"><input id="chatGifQuery" type="search" maxlength="50" placeholder="Buscar GIF: abrazo, beso, risa…" aria-label="Buscar GIF en GIPHY"><button id="chatGifSearch" class="gif-search-btn" type="button">Buscar</button></div>
+            <div id="chatGifKeyConfig" class="gif-key-config hidden"><label>Clave pública de GIPHY (solo una vez en este celular)<input id="chatGifApiKey" placeholder="Pega tu API key de GIPHY" autocomplete="off"></label><button id="chatGifKeySave" type="button" class="btn-secondary">Guardar clave</button><p>Consigue una clave web en <a href="https://developers.giphy.com/dashboard/" target="_blank" rel="noopener noreferrer">GIPHY Developers</a>. No pongas claves secretas de Supabase aquí. También puedes adjuntar un GIF guardado en tu celular.</p></div>
+            <div id="chatGifResults" class="gif-result-grid" aria-live="polite"></div>
+            <p id="chatGifStatus" class="gif-status" role="status"></p><a href="https://giphy.com/" target="_blank" rel="noopener noreferrer" class="gif-attribution">Powered by GIPHY</a>
+          </div>
           <div id="chatEmojiGrid" class="chat-emoji-grid"></div>
           <div id="chatStickerGrid" class="chat-sticker-grid hidden"></div><div id="chatFavoritesGrid" class="chat-sticker-grid hidden" aria-label="Stickers favoritos de la pareja"></div>
           <div id="chatStickerImport" class="sticker-import hidden"><div><strong>Nuestros paquetes de stickers</strong><small>Selecciona fotos o stickers PNG, WEBP o GIF (hasta 2 MB). Toca ★ para guardarlos en favoritos visibles para ambos.</small><input id="chatStickerPack" maxlength="40" placeholder="Nombre del paquete (ej: Fer & Alxs)" aria-label="Nombre del paquete de stickers"></div><label class="sticker-file-btn">+ Importar desde archivos<input id="chatStickerFile" type="file" accept="image/png,image/webp,image/gif" multiple hidden></label><button type="button" id="stickerImportHelp" class="sticker-manage-btn" aria-label="Cómo importar stickers desde Sticker.ly">¿Desde Sticker.ly?</button><button type="button" id="stickerManageBtn" class="sticker-manage-btn" aria-pressed="false" aria-label="Eliminar stickers agregados de la colección compartida">Eliminar stickers agregados</button><p id="stickerStatus" role="status"></p><div id="stickerImportGuide" class="sticker-import-guide hidden"><strong>Cómo traer tus stickers desde otra aplicación</strong><p>Si Sticker.ly te deja guardar tu creación como imagen PNG, WEBP o GIF, guárdala en Descargas/Galería y toca «Importar desde archivos». Si ofrece compartir la <em>imagen</em> con Fer & Alxs, también puedes guardarla y elegirla aquí. Los enlaces de paquetes de Sticker.ly y los paquetes internos de WhatsApp no se importan directamente a una web. Usa tus propias imágenes o stickers para los que tengas permiso.</p><button type="button" id="stickerImportGuideClose" class="sticker-manage-btn">Entendido</button></div></div>
@@ -112,7 +118,15 @@ document.addEventListener('DOMContentLoaded', function () {
           <button id="chatRecord" class="chat-tool chat-record" type="button" aria-label="Grabar nota de voz" title="Grabar o detener audio"><svg class="ui-icon"><use href="#i-mic"/></svg></button>
           <button id="chatSend" type="submit" class="chat-send" aria-label="Enviar mensaje"><svg class="ui-icon"><use href="#i-send"/></svg></button>
         </form>
-<p id="chatRecording" class="chat-recording hidden" role="status">● Grabando audio… Pulsa el micrófono otra vez para enviarlo. Máximo 2 minutos.</p><p id="chatStatus" class="chat-status" role="status" aria-live="polite"></p>
+<div id="chatPlusMenu" class="fer77-plus-menu hidden" role="group" aria-label="Opciones de compartir">
+        <button type="button" data-plus="photo">▧ <span>Fotografía / documento</span></button>
+        <button type="button" data-plus="gif">▣ <span>Buscar GIF</span></button>
+        <button type="button" data-plus="sticker">✿ <span>Stickers</span></button>
+        <button type="button" data-plus="camera">◉ <span>Cámara de recuerdos</span></button>
+        <button type="button" data-plus="music">♫ <span>Nuestra música</span></button>
+        <button type="button" data-plus="map">⌖ <span>Mapa de recuerdos</span></button>
+      </div>
+      <p id="chatRecording" class="chat-recording hidden" role="status">● Grabando audio… Pulsa el micrófono otra vez para enviarlo. Máximo 2 minutos.</p><p id="chatStatus" class="chat-status" role="status" aria-live="polite"></p>
       </div>
     </section>
     <section class="page" data-page="notes" id="page-notes">
@@ -252,6 +266,21 @@ document.addEventListener('DOMContentLoaded', function () {
     <p class="v71-welcome-copy">Quería que tuviéramos un lugar al que volver incluso cuando estemos lejos. Aquí caben nuestras fotos, canciones, historias y todos esos pequeños momentos que hacen tan especial estar contigo.</p>
     <p class="v71-welcome-signature">Con amor, Alxs</p>
     <div class="v71-welcome-actions"><button type="button" id="v71WelcomeCards" class="btn-primary">Descubrir nuestras cartas</button><button type="button" id="v71WelcomeChat" class="btn-secondary">Abrir nuestro chat</button></div>
+  </section>
+</div>
+<div id="fer77MessageMenu" class="fer77-message-overlay hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="fer77MenuTitle">
+  <button class="fer77-action-scrim" type="button" aria-label="Cerrar opciones"></button>
+  <section class="fer77-action-sheet">
+    <div class="fer77-drag-bar"></div><h2 id="fer77MenuTitle">Opciones del mensaje</h2>
+    <p class="fer77-menu-intro">Toca una reacción o mantén presionado tu emoji favorito para seleccionarlo.</p>
+    <div id="fer77ReactionChoices" class="fer77-reaction-choices" aria-label="Elegir reacción"></div>
+    <div class="fer77-menu-grid">
+      <button id="fer77MenuReply" type="button">↶ <span>Responder</span></button>
+      <button id="fer77MenuCopy" type="button">▤ <span>Copiar</span></button>
+      <button id="fer77MenuForward" type="button">➤ <span>Enviar otra vez</span></button>
+      <button id="fer77MenuShare" type="button">↗ <span>Compartir</span></button>
+    </div>
+    <button id="fer77MenuClose" class="fer77-menu-cancel" type="button">Cerrar</button>
   </section>
 </div>
 <div id="stickerMessageMenu" class="sticker-message-menu hidden" role="dialog" aria-modal="true" aria-labelledby="stickerMessageHeading" aria-hidden="true">
