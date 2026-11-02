@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4b0f22" />
+  <meta name="description" content="Álbum mutuo de Alxs y Fernanda: fotos compartidas, mensajes, fechas y lugares." />
+  <title>Fer & Alxs · Nuestro rincón</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="./galeria.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="./config.js"></script>
+  <script defer src="./jszip.min.js"></script>
+  <script defer src="./galeria.js"></script>
+</head>
+<body>
+  <div class="bg-orbs" aria-hidden="true">
+    <span></span><span></span><span></span><span></span>
+  </div>
+
+  <header class="topbar wrap">
+    <div class="brand">
+      <div class="brand-mark">❤</div>
+      <div>
+        <strong>Fer & Alxs</strong>
+        <small>Nuestro rincón borgoña</small>
+      </div>
+    </div>
+    <a class="ghost-link" href="#album">Entrar al álbum</a>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <div class="hero-copy">
+        <p class="eyebrow">ÁLBUM PRIVADO · DE LOS DOS</p>
+        <h1>Un lugar para <span>nuestros recuerdos</span></h1>
+        <p class="lead">
+          No es solo una galería. Es un espacio mutuo para ustedes dos: suben fotos,
+          dejan <strong>mensajes tipo burbuja</strong>, guardan <strong>la fecha</strong>, <strong>el lugar</strong>
+          y pequeños <strong>recordatorios</strong> para que cada recuerdo tenga alma.
+        </p>
+        <div class="hero-pills">
+          <span>Cards que se dan vuelta</span>
+          <span>Estilo burdeos / borgoña</span>
+          <span>Mensajitos y notas</span>
+          <span>Solo para ustedes dos</span>
+          <span>Respaldo y restauración</span>
+        </div>
+        <a class="primary-btn" href="#album">Abrir nuestro álbum</a>
+      </div>
+
+      <div class="hero-mockup" aria-hidden="true">
+        <div class="mock-card front">
+          <div class="mock-photo"></div>
+          <div class="mock-bubble">“Te extraño, pero este momento siempre me acompaña.”</div>
+          <div class="mock-caption">Toca para ver el reverso</div>
+        </div>
+        <div class="mock-card back">
+          <h3>Recuerdo especial</h3>
+          <ul>
+            <li><b>Fecha:</b> 14 febrero 2026</li>
+            <li><b>Lugar:</b> Antofagasta</li>
+            <li><b>Nota:</b> Primer atardecer juntos ese mes.</li>
+            <li><b>Recordatorio:</b> Volver a sacar una foto aquí.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="features wrap">
+      <article>
+        <h3>Frente de la card</h3>
+        <p>La foto se ve grande y elegante, con una burbuja encima para el mensaje o comentario principal.</p>
+      </article>
+      <article>
+        <h3>Reverso romántico</h3>
+        <p>Al dar vuelta la tarjeta aparecen la fecha, el lugar, la nota del recuerdo y un recordatorio especial.</p>
+      </article>
+      <article>
+        <h3>Mutuo y privado</h3>
+        <p>Cada uno entra con su cuenta, sube recuerdos y ve automáticamente lo que el otro agregó.</p>
+      </article>
+    </section>
+
+    <section id="album" class="album-section wrap">
+      <div class="section-head">
+        <p class="eyebrow">NUESTRO ÁLBUM</p>
+        <h2>Fotos que cuentan una historia</h2>
+        <p class="section-text">
+          Cada foto se transforma en una pieza viva de su relación. Pueden verla por delante,
+          girarla, leer el mensaje, recordar el lugar y dejarse una pequeña nota para el futuro.
+        </p>
+      </div>
+
+      <div id="cloudWarning" class="notice warning hidden">
+        Falta conectar la nube. Completa <code>config.js</code> con tu URL y la clave pública de Supabase.
+      </div>
+
+      <div id="loginView" class="auth-card panel hidden">
+        <div>
+          <h3>Entren a su rincón privado ♡</h3>
+          <p>Solo Alxs y Fernanda podrán entrar y ver el contenido compartido.</p>
+        </div>
+        <form id="loginForm" class="auth-form">
+          <label>
+            Correo
+            <input id="email" type="email" autocomplete="email" placeholder="correo@ejemplo.com" required />
+          </label>
+          <label>
+            Contraseña
+            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+          </label>
+          <button id="loginBtn" class="primary-btn" type="submit">Entrar</button>
+        </form>
+        <p id="loginMsg" class="mini-msg"></p>
+      </div>
+
+      <div id="appView" class="hidden">
+        <div class="dashboard-top panel">
+          <div>
+            <p class="mini-kicker">Conectados</p>
+            <h3 id="welcomeTitle">Hola ♡</h3>
+            <p id="memberNames" class="subtle">Esperando nombres…</p>
+          </div>
+          <div class="dashboard-actions">
+            <div class="stat-pill">
+              <span id="photoCount">0</span>
+              <small>recuerdos</small>
+            </div>
+            <button id="logoutBtn" class="soft-btn" type="button">Cerrar sesión</button>
+          </div>
+        </div>
+
+        <div class="layout-grid">
+          <aside class="upload-panel panel">
+            <h3>Agregar un nuevo recuerdo</h3>
+            <p class="subtle">Puedes subir hasta 8 fotos. Cada una llevará los mismos datos de esta carga.</p>
+
+            <form id="uploadForm" class="upload-form">
+              <label class="dropzone" for="photoInput" id="dropzone">
+                <input id="photoInput" type="file" accept="image/*" multiple />
+                <span class="drop-title">Toca para elegir fotos</span>
+                <small>o arrástralas aquí</small>
+              </label>
+
+              <div id="preview" class="preview hidden"></div>
+
+              <label>
+                Título del recuerdo
+                <input id="memoryTitle" type="text" maxlength="80" placeholder="Ej: Nuestra salida al mar" />
+              </label>
+
+              <label>
+                Mensaje en burbuja (frente)
+                <textarea id="bubbleText" maxlength="180" rows="3" placeholder="Ej: Amo esta foto contigo, me da paz verla."></textarea>
+              </label>
+
+              <label>
+                Nota del reverso
+                <textarea id="backNote" maxlength="240" rows="3" placeholder="Ej: Ese día caminamos, conversamos y todo se sintió más bonito contigo."></textarea>
+              </label>
+
+              <div class="two-cols">
+                <label>
+                  Fecha del recuerdo
+                  <input id="eventDate" type="date" />
+                </label>
+                <label>
+                  Lugar
+                  <input id="location" type="text" maxlength="90" placeholder="Ej: Antofagasta" />
+                </label>
+              </div>
+
+              <label>
+                Recordatorio bonito
+                <input id="reminder" type="text" maxlength="140" placeholder="Ej: Repetir esta salida el próximo mes" />
+              </label>
+
+              <button id="uploadBtn" class="primary-btn" type="submit" disabled>Guardar en nuestro álbum</button>
+            </form>
+
+            <div id="progressBox" class="progress hidden" aria-live="polite">
+              <p id="progressText">Subiendo…</p>
+              <div class="bar"><span id="progressBar"></span></div>
+            </div>
+
+            <p id="statusMsg" class="mini-msg"></p>
+          </aside>
+
+          <section class="gallery-panel">
+            <div class="panel gallery-header">
+              <div>
+                <h3>Recuerdos compartidos</h3>
+                <p id="countText" class="subtle">Aquí aparecerán sus tarjetas.</p>
+              </div>
+              <div id="filters" class="filters" role="group" aria-label="Filtrar tarjetas">
+                <button type="button" class="active" data-filter="all" aria-pressed="true">Todas</button>
+                <button type="button" data-filter="mine" aria-pressed="false">Mías</button>
+                <button type="button" data-filter="theirs" aria-pressed="false">De Fer / tuyas</button>
+              </div>
+            </div>
+
+            <div id="cardGrid" class="card-grid panel-shell">
+              <div class="empty-state panel">
+                <div class="empty-heart">❤</div>
+                <h4>Aquí vivirán sus recuerdos</h4>
+                <p>Sube la primera foto y empezará su álbum mutuo.</p>
+              </div>
+            </div>
+
+            <div class="load-row">
+              <button id="loadMoreBtn" class="soft-btn hidden" type="button">Cargar más</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="couple-extras">
+          <section class="extras-panel panel" aria-labelledby="notesTitle">
+            <div class="extras-heading"><div>
+              <p class="eyebrow">NUESTRO TABLERO</p>
+              <h3 id="notesTitle">Mensajitos y recordatorios</h3>
+              <p class="subtle">Déjense notas pequeñas, promesas y fechas que no quieran olvidar.</p>
+            </div></div>
+            <form id="noteForm" class="note-form">
+              <label>¿Qué quieres dejarle?
+                <select id="noteType" aria-label="Tipo de nota">
+                  <option value="message">Un mensajito</option>
+                  <option value="reminder">Un recordatorio</option>
+                </select>
+              </label>
+              <label>Tu mensaje
+                <textarea id="noteContent" maxlength="500" rows="3" placeholder="Escribe algo que le saque una sonrisa…" required></textarea>
+              </label>
+              <label id="noteDateLabel" class="hidden">Fecha del recordatorio
+                <input id="noteDueDate" type="date" />
+              </label>
+              <button id="noteSaveBtn" class="primary-btn" type="submit">Guardar mensajito</button>
+            </form>
+            <p id="noteStatus" class="mini-msg" role="status"></p>
+            <div id="notesGrid" class="notes-grid" aria-live="polite"></div>
+          </section>
+
+          <section class="extras-panel panel" aria-labelledby="backupTitle">
+            <p class="eyebrow">CÁPSULA DEL TIEMPO</p>
+            <h3 id="backupTitle">Nuestros recuerdos, a salvo</h3>
+            <p class="subtle">Descarga un archivo ZIP con <strong>todas</strong> las fotografías, tarjetas, fechas, lugares, mensajes y recordatorios. No depende de que el teléfono conserve la app.</p>
+            <div class="backup-illustration" aria-hidden="true"><span class="backup-heart">♥</span><span>FER × ALXS</span><small>Archivo de nuestra historia</small></div>
+            <div class="backup-status" id="backupStatus" role="status">Aún no hay una copia registrada en este dispositivo.</div>
+            <div class="backup-actions">
+              <button id="backupExportBtn" class="primary-btn" type="button">Descargar respaldo ZIP</button>
+              <div class="backup-progress hidden" id="backupProgress" aria-live="polite">
+                <span id="backupProgressText">Preparando respaldo…</span>
+                <div class="bar"><span id="backupProgressBar"></span></div>
+              </div>
+              <hr class="soft-divider" />
+              <label>Recuperar desde un ZIP de esta página
+                <input id="backupImportInput" type="file" accept=".zip,application/zip" />
+              </label>
+              <button id="backupImportBtn" class="soft-btn" type="button" disabled>Restaurar recuerdos</button>
+              <p id="backupMessage" class="mini-msg" role="status"></p>
+            </div>
+            <p class="security-note">El ZIP no está cifrado. Guarda una copia privada fuera del celular, por ejemplo en tu Drive personal. La descarga y restauración se inician manualmente; no existe un respaldo automático en segundo plano.</p>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="lightbox" class="lightbox hidden" aria-hidden="true">
+    <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Cerrar">×</button>
+    <div class="lightbox-card">
+      <img id="lightboxImg" alt="Fotografía del recuerdo" />
+      <div class="lightbox-meta">
+        <h4 id="lightboxTitle">Recuerdo</h4>
+        <p id="lightboxDesc"></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
