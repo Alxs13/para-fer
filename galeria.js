@@ -119,6 +119,9 @@
       if (sub) { sb.removeChannel(sub); sub = null; }
       if (notesSub) { sb.removeChannel(notesSub); notesSub = null; }
       if (extraSub) { sb.removeChannel(extraSub); extraSub = null; }
+      if (chatSub) { sb.removeChannel(chatSub); chatSub = null; }
+      if (miscSub) { sb.removeChannel(miscSub); miscSub = null; }
+      chatMessages = []; chatOffset = 0; customStickers = []; savingsGoals = []; savingsEntries = [];
       songs=[]; videos=[]; calendarPhotos=[];
       $('musicPlayer').replaceChildren(); $('musicPlayer').classList.add('hidden');
       $('videoGrid').replaceChildren();
@@ -158,6 +161,14 @@
       .on('postgres_changes',{event:'*',schema:'public',table:'couple_songs'},()=>{if(activeUser)loadSongs().catch(console.warn);})
       .on('postgres_changes',{event:'*',schema:'public',table:'couple_videos'},()=>{if(activeUser)loadVideos().catch(console.warn);})
       .subscribe();
+    chatSub = sb.channel('couple-chat-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'couple_chat'},()=>{if(activeUser && page==='chat')loadChat(true,true).catch(console.warn);})
+      .subscribe();
+    miscSub = sb.channel('couple-chat-extras-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'couple_stickers'},()=>{if(activeUser)loadStickers().catch(console.warn);})
+      .on('postgres_changes',{event:'*',schema:'public',table:'couple_saving_goals'},()=>{if(activeUser && page==='savings')loadSavings().catch(console.warn);})
+      .on('postgres_changes',{event:'*',schema:'public',table:'couple_saving_entries'},()=>{if(activeUser && page==='savings')loadSavings().catch(console.warn);})
+      .subscribe();
     notesSub = sb.channel('couple-notes-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'couple_notes' }, () => {
         if (activeUser && !busy) loadNotes().catch(console.warn);
@@ -179,7 +190,7 @@
   let isLoadingPage = false;
   let filteredPhotos = [];
   let page = 'home';
-  const sectionNames = ['home','cards','binder','notes','backup','calendar','music','videos','more'];
+  const sectionNames = ['home','cards','chat','savings','binder','notes','backup','calendar','music','videos','more'];
 
   function goPage(name) {
     if (!sectionNames.includes(name)) name = 'home';
@@ -193,6 +204,8 @@
     });
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (name === 'cards') scrollToCard(activeCard, false);
+    if(name === 'savings') loadSavings().catch(e=>text($('savingsStatus'),friendly(e)));
+    if(name === 'chat') { loadStickers().catch(console.warn); loadChat(true).catch(e=>text($('chatStatus'),friendly(e))); }
     if(name === 'calendar') loadCalendar().catch(e=>text($('calendarDetails'),friendly(e)));
     if(name === 'music') { populateSongPhotos(); loadSongs().catch(e=>text($('musicStatus'),friendly(e))); }
     if(name === 'videos') loadVideos().catch(e=>text($('videoStatus'),friendly(e)));
@@ -247,6 +260,21 @@
     },650);
   });
 
+  function animateFlip(card) {
+    // Mantener los dos planos montados durante toda la rotación: el reverso
+    // no desaparece de golpe ni se despega la burbuja en Chrome Android.
+    if (card.classList.contains('is-flipping')) return;
+    card.classList.add('is-flipping');
+    card.classList.toggle('is-flipped');
+    const inner=card.querySelector('.memory-card-inner');
+    const finish=e=>{if(e && (e.target!==inner || e.propertyName!=='transform'))return;
+      inner.removeEventListener('transitionend',finish);
+      card.classList.remove('is-flipping');
+    };
+    inner.addEventListener('transitionend',finish);
+    setTimeout(()=>finish(),850);
+  }
+
   function memoryCard(item) {
     const title = item.title || 'Recuerdo sin título';
     const bubble = item.bubble_text || 'Un momento que guardamos para siempre. ♡';
@@ -282,10 +310,10 @@
     card.addEventListener('click',e=>{
       if(e.target.closest('button')) return;
       if(Math.abs(e.clientX-pointerX)>10) return;
-      card.classList.toggle('is-flipped');
+      animateFlip(card);
     });
     card.addEventListener('keydown',e=>{
-      if(e.target===card && (e.key==='Enter'||e.key===' ')) {e.preventDefault();card.classList.toggle('is-flipped');}
+      if(e.target===card && (e.key==='Enter'||e.key===' ')) {e.preventDefault();animateFlip(card);}
     });
     card.querySelectorAll('[data-action="flip"]').forEach(btn=>btn.addEventListener('click',()=>card.classList.toggle('is-flipped')));
     card.querySelectorAll('[data-action="zoom"]').forEach(btn=>btn.addEventListener('click',()=>lightbox(item)));
@@ -878,7 +906,7 @@
 
   function fileExtension(path) {
     const ext = (String(path).split('.').pop() || 'jpg').toLowerCase();
-    return ['jpg','jpeg','webp','png','gif','mp4','webm'].includes(ext) ? ext : 'jpg';
+    return ['jpg','jpeg','webp','png','gif','mp4','webm','pdf','txt','csv','zip','docx','xlsx','ogg','m4a'].includes(ext) ? ext : 'jpg';
   }
 
   function downloadBlob(blob, filename) {
@@ -952,6 +980,372 @@
     }
   });
 
+
+  // CHAT PRIVADO — misma cuenta Supabase y reglas RLS del álbum.
+  let miscSub = null;
+  let customStickers = [];
+  let savingsGoals = [];
+  let savingsEntries = [];
+  const CHAT_FILES_BUCKET = 'fer-alxs-chat';
+  const STICKER_BUCKET = 'fer-alxs-stickers';
+  let chatSub = null;
+  let chatMessages = [];
+  let chatOffset = 0;
+  let chatMore = false;
+  let chatBusy = false;
+  let chatRequest = 0;
+  let replyDraft = null;
+  const CHAT_BATCH = 50;
+  const stickerCatalog = [
+    {id:'te-amo',title:'TE AMO',subtitle:'hasta el infinito',symbol:'♥',color:'rose'},
+    {id:'besito',title:'MUAH',subtitle:'un besito para ti',symbol:'♡',color:'peach'},
+    {id:'abrazo',title:'ABRAZO',subtitle:'apretadito',symbol:'✿',color:'plum'},
+    {id:'te-extrano',title:'TE EXTRAÑO',subtitle:'ven a mí',symbol:'☾',color:'violet'},
+    {id:'buenos-dias',title:'BUEN DÍA',subtitle:'mi personita',symbol:'☼',color:'amber'},
+    {id:'dulces-suenos',title:'DULCES SUEÑOS',subtitle:'descansa amor',symbol:'✧',color:'indigo'},
+    {id:'contigo',title:'CONTIGO',subtitle:'todo es mejor',symbol:'❀',color:'jade'},
+    {id:'por-siempre',title:'SIEMPRE',subtitle:'fer & alxs',symbol:'∞',color:'ruby'}
+  ];
+  const stickerById = id => stickerCatalog.find(s=>s.id===id);
+  function stickerHTML(id) {
+    const s=stickerById(id);
+    if(!s)return '';
+    return `<div class="love-sticker ${s.color}" role="img" aria-label="Sticker ${escapeHtml(s.title)}">
+      <div class="sticker-stars" aria-hidden="true">✧ · ✦ · ✧</div><span class="sticker-symbol" aria-hidden="true">${s.symbol}</span>
+      <strong>${escapeHtml(s.title)}</strong><small>${escapeHtml(s.subtitle)}</small></div>`;
+  }
+  const dateTimeChat = iso => new Intl.DateTimeFormat('es-CL',{hour:'2-digit',minute:'2-digit'}).format(new Date(iso));
+  const dateChat = iso => new Intl.DateTimeFormat('es-CL',{day:'numeric',month:'long',year:'numeric'}).format(new Date(iso));
+  const chatWall = document.querySelector('#page-chat .chat-wall');
+  const chatTimeline=$('chatTimeline');
+  const chatInput=$('chatInput');
+  function setReply(item) {
+    replyDraft={id:item.id,author:authorName(item),body:item.kind==='sticker'?'Sticker':(item.kind==='audio'?'Nota de voz':(item.kind==='file'?item.file_name:item.body))};
+    $('chatReplyName').textContent=replyDraft.author;
+    $('chatReplyText').textContent=replyDraft.body.slice(0,100);
+    show($('chatReplyBar'));
+    chatInput.focus();
+  }
+  function clearReply() {replyDraft=null;hide($('chatReplyBar'));}
+  $('chatReplyCancel').addEventListener('click',clearReply);
+  function renderChat(scrollBottom=false,offsetScroll=0) {
+    const frag=document.createDocumentFragment();let lastDay='';
+    for(const item of chatMessages) {
+      const day = dateChat(item.created_at);
+      if(day!==lastDay){const el=document.createElement('div');el.className='chat-date';el.textContent=day;frag.appendChild(el);lastDay=day;}
+      const mine=isMine(item);
+      const wrapper=document.createElement('article');wrapper.className='chat-message '+(mine?'from-me':'from-them');
+      const header=document.createElement('div');header.className='chat-author';header.textContent=authorName(item);
+      const bubble=document.createElement('div');bubble.className='chat-bubble '+(item.kind==='sticker'?'chat-bubble-sticker':'');
+      if(item.reply_preview){const q=document.createElement('div');q.className='chat-quoted';
+        const name=document.createElement('b');name.textContent=item.reply_author||'Mensaje';
+        const body=document.createElement('span');body.textContent=item.reply_preview;
+        q.append(name,body);bubble.append(q);}
+      if(item.kind==='sticker' && item.sticker_id){
+        const s=customStickers.find(s=>s.id===item.sticker_id);
+        if(s){const visual=document.createElement('img');visual.className='chat-custom-sticker';visual.src=s.signedUrl||'';visual.alt=s.name;visual.loading='lazy';bubble.append(visual);}
+        else {const b=document.createElement('span');b.textContent='Sticker guardado (pulsa actualizar)';bubble.append(b);}
+      }else if(item.kind==='sticker' && stickerById(item.sticker_code)){
+        const visual=document.createElement('div');visual.innerHTML=stickerHTML(item.sticker_code);bubble.append(visual.firstChild);
+      }else if(['file','audio'].includes(item.kind) && item.attachment_path){
+        const fileBox=document.createElement('div');fileBox.className='chat-attachment';
+        const fileName=document.createElement('span');fileName.textContent=item.file_name||'Archivo adjunto';
+        const play=document.createElement('button');play.type='button';play.className='small-btn';play.textContent=item.kind==='audio'?'▶ Escuchar audio':'↓ Abrir archivo';
+        play.addEventListener('click', async()=>{
+          play.disabled=true;
+          try{
+            const {data,error}=await sb.storage.from(CHAT_FILES_BUCKET).createSignedUrl(item.attachment_path,120);
+            if(error)throw error;
+            if(item.kind==='audio'){
+              const audio=document.createElement('audio');audio.src=data.signedUrl;audio.controls=true;audio.autoplay=true;audio.preload='metadata';play.replaceWith(audio);
+            } else {
+              window.open(data.signedUrl,'_blank','noopener,noreferrer');
+            }
+          }catch(err){text($('chatStatus'),friendly(err));}finally{play.disabled=false;}
+        });
+        if(item.file_mime?.startsWith('image/')){
+          const thumb=document.createElement('img');thumb.className='chat-file-photo';thumb.alt=item.file_name||'Fotografía compartida';thumb.loading='lazy';
+          sb.storage.from(CHAT_FILES_BUCKET).createSignedUrl(item.attachment_path,1800).then(({data,error})=>{if(!error && thumb.isConnected)thumb.src=data.signedUrl;}).catch(console.warn);
+          fileBox.append(thumb);
+        }
+        fileBox.append(fileName,play);bubble.append(fileBox);
+      }else {const t=document.createElement('p');t.textContent=item.body; bubble.append(t);}
+      const meta=document.createElement('div');meta.className='chat-meta';
+      const time=document.createElement('time');time.dateTime=item.created_at;time.textContent=dateTimeChat(item.created_at);meta.append(time);
+      const replyBtn=document.createElement('button');replyBtn.type='button';replyBtn.textContent='Responder';replyBtn.className='chat-reply-btn';replyBtn.addEventListener('click',()=>setReply(item));meta.append(replyBtn);
+      if(mine){const del=document.createElement('button');del.type='button';del.textContent='Eliminar';del.className='chat-delete-btn';del.addEventListener('click',async()=>{
+        if(!confirm('¿Borrar este mensaje para los dos?'))return;
+        const {error}=await sb.from('couple_chat').delete().eq('id',item.id).eq('user_id',activeUser.id);
+        if(error)text($('chatStatus'),friendly(error));
+        else {
+          if(item.attachment_path){
+            const {error:removeError}=await sb.storage.from(CHAT_FILES_BUCKET).remove([item.attachment_path]);
+            if(removeError)text($('chatStatus'),'Mensaje borrado, pero no se pudo borrar el archivo de la nube: '+friendly(removeError));
+          }
+          await loadChat(true,true);
+        }
+      });meta.append(del);}
+      wrapper.append(header,bubble,meta);frag.appendChild(wrapper);
+    }
+    chatTimeline.replaceChildren(frag);
+    $('chatEmpty').classList.toggle('hidden',chatMessages.length>0);
+    $('chatOlderBtn').classList.toggle('hidden',!chatMore);
+    if(offsetScroll>0)chatWall.scrollTop=chatWall.scrollHeight-offsetScroll;
+    else if(scrollBottom)chatWall.scrollTop=chatWall.scrollHeight;
+  }
+  async function loadChat(reset=false,preserve=false){
+    if(!activeUser)return;
+    const req=++chatRequest;
+    const oldHeight=chatWall.scrollHeight;
+    const nearBottom=chatWall.scrollHeight-chatWall.scrollTop-chatWall.clientHeight<140;
+    const before=preserve && !nearBottom ? chatWall.scrollHeight-chatWall.scrollTop : 0;
+    const start=reset?0:chatOffset;
+    const {data,error}=await sb.from('couple_chat')
+      .select('id,user_id,kind,body,sticker_code,sticker_id,attachment_path,file_name,file_mime,reply_preview,reply_author,created_at,original_author_name,backup_source_id')
+      .order('created_at',{ascending:false}).range(start,start+CHAT_BATCH-1);
+    if(req!==chatRequest || !activeUser)return;
+    if(error){text($('chatStatus'),'No se pudo abrir el chat: '+friendly(error)+' Ejecuta 04_activar_chat.sql en Supabase.');return;}
+    const part=(data||[]).reverse();
+    chatMessages=reset?part:part.concat(chatMessages);
+    chatOffset=start+(data||[]).length;
+    chatMore=(data||[]).length===CHAT_BATCH;
+    renderChat(reset?(nearBottom||!preserve):false,reset?before:(oldHeight-chatWall.scrollTop));
+    text($('chatStatus'),'');
+  }
+  $('chatRefresh').addEventListener('click',()=>loadChat(true,true).catch(e=>text($('chatStatus'),friendly(e))));
+  $('chatOlderBtn').addEventListener('click',()=>loadChat(false).catch(e=>text($('chatStatus'),friendly(e))));
+  $('chatForm').addEventListener('submit',async e=>{
+    e.preventDefault();if(!activeUser || chatBusy)return;
+    const body=chatInput.value.trim().slice(0,1500);
+    if(!body)return;
+    chatBusy=true;$('chatSend').disabled=true;
+    try{
+      const row={user_id:activeUser.id,kind:'text',body,reply_preview:replyDraft?.body.slice(0,140)||'',reply_author:replyDraft?.author.slice(0,35)||''};
+      const {error}=await sb.from('couple_chat').insert(row);
+      if(error)throw error;
+      chatInput.value='';chatInput.style.height='auto';clearReply();hide($('chatPicker'));
+      await loadChat(true);
+      chatWall.scrollTop=chatWall.scrollHeight;
+    }catch(err){text($('chatStatus'),friendly(err));}
+    finally{chatBusy=false;$('chatSend').disabled=false;}
+  });
+  chatInput.addEventListener('input',()=>{chatInput.style.height='auto';chatInput.style.height=Math.min(chatInput.scrollHeight,118)+'px';});
+  chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing && window.matchMedia('(min-width:700px)').matches){e.preventDefault();$('chatForm').requestSubmit();}});
+  $('chatPickerToggle').addEventListener('click',()=>{$('chatPicker').classList.toggle('hidden');});
+  function setPickerTab(name){
+    const stickers=name==='sticker';
+    $('chatEmojiTab').classList.toggle('active',!stickers);$('chatStickerTab').classList.toggle('active',stickers);
+    $('chatEmojiGrid').classList.toggle('hidden',stickers);$('chatStickerGrid').classList.toggle('hidden',!stickers);$('chatStickerImport').classList.toggle('hidden',!stickers);
+  }
+  $('chatEmojiTab').addEventListener('click',()=>setPickerTab('emoji'));
+  $('chatStickerTab').addEventListener('click',()=>setPickerTab('sticker'));
+  for(const em of ['❤️','🥹','😘','💕','🫶','🌹','✨','🥰','💌','🫂','💋','🌙','😍','💖','☀️','🎶']){
+    const b=document.createElement('button');b.type='button';b.className='chat-emoji';b.textContent=em;b.setAttribute('aria-label','Agregar '+em);
+    b.addEventListener('click',()=>{chatInput.value+=em;chatInput.dispatchEvent(new Event('input'));chatInput.focus();});$('chatEmojiGrid').append(b);
+  }
+  for(const sticker of stickerCatalog){
+    const b=document.createElement('button');b.type='button';b.className='sticker-pick';b.innerHTML=stickerHTML(sticker.id);b.title='Enviar sticker '+sticker.title;
+    b.addEventListener('click',async()=>{
+      if(!activeUser || chatBusy)return;
+      chatBusy=true;
+      try{
+        const {error}=await sb.from('couple_chat').insert({user_id:activeUser.id,kind:'sticker',sticker_code:sticker.id,body:'',reply_preview:replyDraft?.body.slice(0,140)||'',reply_author:replyDraft?.author.slice(0,35)||''});
+        if(error)throw error;
+        hide($('chatPicker'));clearReply();await loadChat(true);chatWall.scrollTop=chatWall.scrollHeight;
+      }catch(err){text($('chatStatus'),friendly(err));}
+      finally{chatBusy=false;}
+    });$('chatStickerGrid').append(b);
+  }
+
+  // IMPORTAR, GUARDAR Y ENVIAR STICKERS PRIVADOS (PNG / WEBP / GIF).
+  async function loadStickers(){
+    if(!activeUser)return;
+    const {data,error}=await sb.from('couple_stickers').select('id,user_id,name,pack_name,storage_path,created_at,backup_source_id').order('created_at',{ascending:false}).limit(200);
+    if(error){text($('stickerStatus'),'Ejecuta 04_chat_ahorros.sql: '+friendly(error));return;}
+    const arr=data||[];
+    const {data:links,error:signErr}=arr.length?await sb.storage.from(STICKER_BUCKET).createSignedUrls(arr.map(s=>s.storage_path),3600):{data:[],error:null};
+    if(signErr)console.warn(signErr);
+    customStickers=arr.map((s,i)=>({...s,signedUrl:links?.[i]?.signedUrl||''}));
+    renderStickers();
+    if(page==='chat')renderChat(false,chatWall.scrollHeight-chatWall.scrollTop);
+  }
+  function renderStickers(){
+    const grid=$('chatStickerGrid');
+    grid.querySelectorAll('.sticker-custom-pick').forEach(el=>el.remove());
+    for(const s of customStickers){
+      const b=document.createElement('button');b.type='button';b.className='sticker-custom-pick';b.title='Enviar '+s.name;
+      const img=document.createElement('img');img.src=s.signedUrl||'';img.alt=s.name;img.loading='lazy';
+      const title=document.createElement('small');title.textContent=(s.pack_name?s.pack_name+' · ':'')+s.name;
+      b.append(img,title);b.addEventListener('click',()=>sendCustomSticker(s.id));grid.append(b);
+    }
+    if(!customStickers.length)text($('stickerStatus'),'Importa tu primer sticker y aparecerá aquí.');
+    else text($('stickerStatus'),`${customStickers.length} stickers guardados entre los dos.`,true);
+  }
+  async function sendCustomSticker(id){
+    if(!activeUser||chatBusy)return;
+    chatBusy=true;
+    try{
+      const {error}=await sb.from('couple_chat').insert({user_id:activeUser.id,kind:'sticker',sticker_id:id,body:'',reply_preview:replyDraft?.body.slice(0,140)||'',reply_author:replyDraft?.author.slice(0,35)||''});
+      if(error)throw error;
+      hide($('chatPicker'));clearReply();await loadChat(true);chatWall.scrollTop=chatWall.scrollHeight;
+    }catch(err){text($('chatStatus'),friendly(err));}finally{chatBusy=false;}
+  }
+  $('chatStickerFile').addEventListener('change',async e=>{
+    const files=[...(e.target.files||[])];if(!files.length||!activeUser)return;
+    const pack=$('chatStickerPack').value.trim().slice(0,40)||'Nuestra colección';
+    if(files.length>15){text($('stickerStatus'),'Elige máximo 15 stickers de una vez.');return;}
+    if(customStickers.length+files.length>100){text($('stickerStatus'),'Máximo 100 stickers entre ambos.');return;}
+    let done=0;
+    try{
+      for(const file of files){
+        if(!['image/png','image/webp','image/gif'].includes(file.type)||file.size>2*1024*1024){throw new Error(`El archivo ${file.name} no es PNG, WEBP o GIF de hasta 2 MB.`);}
+        const name=(file.name.replace(/\.[^.]+$/,'').slice(0,45)||'Sticker');
+        const ext=file.type==='image/gif'?'gif':file.type==='image/webp'?'webp':'png';
+        const path=`${activeUser.id}/${crypto.randomUUID()}.${ext}`;
+        text($('stickerStatus'),`Guardando sticker ${done+1} de ${files.length}…`);
+        const {error:upError}=await sb.storage.from(STICKER_BUCKET).upload(path,file,{contentType:file.type,upsert:false});
+        if(upError)throw upError;
+        const {error}=await sb.from('couple_stickers').insert({user_id:activeUser.id,name,pack_name:pack,storage_path:path});
+        if(error){await sb.storage.from(STICKER_BUCKET).remove([path]);throw error;}
+        done++;
+      }
+      text($('stickerStatus'),`${done} stickers guardados en «${pack}».`,true);
+    }catch(err){text($('stickerStatus'),`Se guardaron ${done}: ${friendly(err)}`);}
+    finally{e.target.value='';await loadStickers();}
+  });
+
+  // DOCUMENTOS Y FOTOS COMPARTIDOS. Archivos privados con enlace temporal al abrirlos.
+  const chatTypes={
+    'application/pdf':'pdf','text/plain':'txt','text/csv':'csv',
+    'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif',
+    'application/zip':'zip','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx',
+    'audio/webm':'webm','audio/ogg':'ogg','audio/mp4':'m4a'
+  };
+  async function sendAttachment(blob,filename,mime,kind){
+    if(!activeUser||chatBusy)return;
+    if(!chatTypes[mime])throw new Error('Formato no permitido. Prueba PDF, documento, imagen o audio.');
+    if(blob.size>12*1024*1024)throw new Error('Límite de 12 MB por archivo.');
+    chatBusy=true;
+    text($('chatStatus'),'Subiendo archivo cifrado en tránsito al almacenamiento privado…');
+    const path=`${activeUser.id}/${crypto.randomUUID()}.${chatTypes[mime]}`;
+    try{
+      const {error:upError}=await sb.storage.from(CHAT_FILES_BUCKET).upload(path,blob,{contentType:mime,upsert:false});
+      if(upError)throw upError;
+      const {error}=await sb.from('couple_chat').insert({user_id:activeUser.id,kind,body:'',attachment_path:path,file_name:filename.slice(0,120),file_mime:mime,
+        reply_preview:replyDraft?.body.slice(0,140)||'',reply_author:replyDraft?.author.slice(0,35)||''});
+      if(error){await sb.storage.from(CHAT_FILES_BUCKET).remove([path]);throw error;}
+      clearReply();await loadChat(true);chatWall.scrollTop=chatWall.scrollHeight;
+      text($('chatStatus'),'Archivo enviado.',true);
+    }finally{chatBusy=false;}
+  }
+  $('chatAttachBtn').addEventListener('click',()=>$('chatAttachInput').click());
+  $('chatAttachInput').addEventListener('change',async e=>{
+    const file=e.target.files?.[0];if(!file)return;
+    try{await sendAttachment(file,file.name,file.type,'file');}catch(err){text($('chatStatus'),friendly(err));}finally{e.target.value='';}
+  });
+
+  // Notas de voz. Usa la API del dispositivo; no garantiza formato MP3 ni envío si micrófono no está permitido.
+  let mediaRecorder=null,mediaStream=null,voiceChunks=[],voiceTimer=null;
+  async function stopVoice(send=true){
+    if(!mediaRecorder||mediaRecorder.state==='inactive')return;
+    mediaRecorder.datasetSend=send;
+    mediaRecorder.stop();
+    $('chatRecord').classList.remove('recording');hide($('chatRecording'));
+    clearTimeout(voiceTimer);
+  }
+  $('chatRecord').addEventListener('click',async()=>{
+    if(mediaRecorder?.state==='recording'){stopVoice(true);return;}
+    if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){text($('chatStatus'),'Este navegador no admite grabar audio. Puedes adjuntar archivos de audio compatibles más adelante.');return;}
+    try{
+      mediaStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(x=>MediaRecorder.isTypeSupported(x));
+      mediaRecorder=mime?new MediaRecorder(mediaStream,{mimeType:mime}):new MediaRecorder(mediaStream);
+      voiceChunks=[];
+      mediaRecorder.addEventListener('dataavailable',e=>{if(e.data?.size)voiceChunks.push(e.data);});
+      mediaRecorder.addEventListener('stop',async()=>{
+        const recorded=mediaRecorder,stream=mediaStream;
+        stream?.getTracks().forEach(t=>t.stop());mediaStream=null;
+        if(!recorded?.datasetSend)return;
+        let rawType=(recorded.mimeType||'audio/webm').split(';')[0];
+        if(!chatTypes[rawType])rawType='audio/webm';
+        const blob=new Blob(voiceChunks,{type:rawType});
+        if(blob.size<100){text($('chatStatus'),'No se grabó audio. Intenta de nuevo.');return;}
+        try{await sendAttachment(blob,`Audio de ${memberName(activeUser.id)}`,rawType,'audio');}
+        catch(err){text($('chatStatus'),friendly(err));}
+      },{once:true});
+      mediaRecorder.start();
+      show($('chatRecording'));$('chatRecord').classList.add('recording');
+      text($('chatStatus'),'Grabando… pulsa nuevamente el micrófono para enviar.');
+      voiceTimer=setTimeout(()=>stopVoice(true),120000);
+    }catch(err){mediaStream?.getTracks().forEach(t=>t.stop());text($('chatStatus'),'Permite el micrófono en Chrome para grabar: '+friendly(err));}
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&mediaRecorder?.state==='recording')stopVoice(false);});
+
+  // AHORROS — solo contabilidad manual, no hay acceso a cuentas bancarias.
+  const money = n => new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n||0);
+  async function loadSavings(){
+    if(!activeUser)return;
+    const [g,e]=await Promise.all([
+      sb.from('couple_saving_goals').select('id,user_id,name,target_clp,target_date,created_at,backup_source_id').order('created_at',{ascending:false}),
+      sb.from('couple_saving_entries').select('id,goal_id,user_id,amount_clp,note,created_at,backup_source_id').order('created_at',{ascending:false})
+    ]);
+    if(g.error||e.error){text($('savingsStatus'),'Activa 04_chat_ahorros.sql en Supabase. '+friendly(g.error||e.error));return;}
+    savingsGoals=g.data||[];savingsEntries=e.data||[];renderSavings();
+  }
+  function renderSavings(){
+    const grid=$('savingGoalList');grid.replaceChildren();
+    const sum=(g)=>savingsEntries.filter(e=>e.goal_id===g.id).reduce((a,e)=>a+e.amount_clp,0);
+    const overall=savingsGoals.reduce((s,g)=>s+sum(g),0);
+    $('savingsTotal').textContent=money(overall);
+    $('savingsCount').textContent=`${savingsGoals.length} metas`;
+    if(!savingsGoals.length){const p=document.createElement('div');p.className='content-panel empty-savings';p.textContent='Su primera meta puede ser un viaje, un aniversario o un proyecto juntos. Créala arriba.';grid.append(p);return;}
+    for(const goal of savingsGoals){
+      const total=sum(goal),pct=Math.max(0,Math.min(100,total/goal.target_clp*100));
+      const card=document.createElement('article');card.className='saving-goal';
+      const heading=document.createElement('div');heading.className='saving-goal-head';
+      const h3=document.createElement('h3');h3.textContent=goal.name;
+      const pctText=document.createElement('strong');pctText.textContent=Math.round(pct)+'%';heading.append(h3,pctText);
+      const vals=document.createElement('div');vals.className='saving-values';vals.textContent=`${money(total)} de ${money(goal.target_clp)} · ${goal.target_date?'Meta '+fmtDate(goal.target_date):'Sin fecha límite'}`;
+      const track=document.createElement('div');track.className='saving-track';const fill=document.createElement('span');fill.style.width=pct+'%';track.append(fill);
+      const form=document.createElement('form');form.className='saving-add';
+      const amount=document.createElement('input');amount.type='number';amount.min='1';amount.max='1000000000';amount.placeholder='Monto CLP';amount.required=true;amount.setAttribute('aria-label','Monto del aporte en CLP');
+      const memo=document.createElement('input');memo.maxLength=100;memo.placeholder='Nota opcional';memo.setAttribute('aria-label','Nota del aporte');
+      const type=document.createElement('select');type.setAttribute('aria-label','Tipo de movimiento');
+      [['1','Agregar'],['-1','Retirar']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;type.append(o);});
+      const btn=document.createElement('button');btn.className='btn-primary';btn.type='submit';btn.textContent='Registrar';
+      form.append(amount,memo,type,btn);
+      form.addEventListener('submit',async ev=>{
+        ev.preventDefault();let n=Number(amount.value);if(!Number.isInteger(n)||n<1||n>1000000000)return;
+        n*=Number(type.value);
+        if(n<0 && Math.abs(n)>total){text($('savingsStatus'),'No puedes retirar más de lo registrado en esta meta.');return;}
+        btn.disabled=true;
+        const {error}=await sb.from('couple_saving_entries').insert({goal_id:goal.id,user_id:activeUser.id,amount_clp:n,note:memo.value.trim()});
+        btn.disabled=false;if(error)text($('savingsStatus'),friendly(error));else{amount.value='';memo.value='';await loadSavings();text($('savingsStatus'),'Movimiento registrado.',true);}
+      });
+      const history=document.createElement('div');history.className='saving-history';
+      for(const entry of savingsEntries.filter(e=>e.goal_id===goal.id).slice(0,20)){
+        const row=document.createElement('div');row.className='saving-history-row';
+        const title=document.createElement('span');title.textContent=`${memberName(entry.user_id)} · ${entry.note||'Movimiento'} · ${fmtCreated(entry.created_at)}`;
+        const value=document.createElement('strong');value.textContent=(entry.amount_clp>0?'+':'')+money(entry.amount_clp);
+        row.append(title,value);history.append(row);
+      }
+      card.append(heading,vals,track,form,history);grid.append(card);
+    }
+  }
+  $('savingGoalForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const name=$('savingGoalName').value.trim(),target=Number($('savingGoalAmount').value);
+    if(!name||!Number.isInteger(target)||target<1000||target>1e9)return;
+    $('savingGoalForm').querySelector('button[type="submit"]').disabled=true;
+    const {error}=await sb.from('couple_saving_goals').insert({user_id:activeUser.id,name,target_clp:target,target_date:$('savingGoalDate').value||null});
+    $('savingGoalForm').querySelector('button[type="submit"]').disabled=false;
+    if(error)text($('savingsStatus'),friendly(error));else{$('savingGoalForm').reset();await loadSavings();text($('savingsStatus'),'Meta creada.',true);}
+  });
+
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&activeUser&&page==='chat')loadChat(true,true).catch(console.warn);});
+  setInterval(()=>{if(activeUser && page==='chat' && !document.hidden)loadChat(true,true).catch(console.warn);},30000);
+
   $('backupExportBtn').addEventListener('click', async () => {
     if (!activeUser || busy) return;
     if (!window.JSZip) return text($('backupMessage'), 'No se pudo cargar la herramienta ZIP. Verifica internet y recarga la página.');
@@ -969,13 +1363,19 @@
         fetchAll('couple_videos','id,user_id,storage_path,title,note,location,event_date,created_at,backup_source_id,original_author_name'),
         fetchAll('couple_songs','id,user_id,title,artist,dedication,youtube_id,photo_id,created_at,backup_source_id,original_author_name')
       ]);
+      const [allChat, allStickers, allGoals, allEntries]=await Promise.all([
+        fetchAll('couple_chat','id,user_id,kind,body,sticker_code,sticker_id,attachment_path,file_name,file_mime,reply_preview,reply_author,created_at,original_author_name,backup_source_id'),
+        fetchAll('couple_stickers','id,user_id,name,pack_name,storage_path,created_at,backup_source_id'),
+        fetchAll('couple_saving_goals','id,user_id,name,target_clp,target_date,created_at,backup_source_id'),
+        fetchAll('couple_saving_entries','id,goal_id,user_id,amount_clp,note,created_at,backup_source_id')
+      ]);
       const zip = new JSZip();
       const people = Object.fromEntries(members.map(m => [m.user_id, m.display_name]));
       const manifest = {
-        format: 'fer-alxs-backup', version: 3,
+        format: 'fer-alxs-backup', version: 4,
         exported_at: new Date().toISOString(),
         members: members.map(m => ({ user_id: m.user_id, display_name:m.display_name })),
-        photos: [], notes: [], songs:[], videos:[]
+        photos: [], notes: [], songs:[], videos:[], chat:[], stickers:[], goals:allGoals, entries:allEntries
       };
       const human = ['FER & ALXS · CÁPSULA DEL TIEMPO', `Exportado el ${new Date().toLocaleString('es-CL')}`, ''];
       for (const [index, row] of allPhotos.entries()) {
@@ -994,6 +1394,31 @@
         manifest.notes.push({ ...row, author });
         human.push(`${row.type === 'reminder' ? 'RECORDATORIO' : 'MENSAJE'}: ${row.content}`, `Autor: ${author}`, `Fecha: ${row.due_date || 'sin fecha'}`, '');
       }
+      let extraBytes=0;
+      for(const s of allStickers){
+        const {data:blob,error}=await sb.storage.from(STICKER_BUCKET).download(s.storage_path);
+        if(error || !blob)throw new Error('No pude recuperar un sticker: '+friendly(error));
+        extraBytes+=blob.size;
+        if(extraBytes>120*1024*1024)throw new Error('Los adjuntos y stickers superan 120 MB; respalda desde un computador. No se creó un ZIP parcial.');
+        const ext=fileExtension(s.storage_path),file=`stickers/${s.id}.${ext}`;
+        zip.file(file,blob);const {storage_path,...meta}=s;manifest.stickers.push({...meta,file});
+      }
+      for(const msg of allChat){
+        const author=msg.original_author_name||people[msg.user_id]||'Mi amor';
+        const {attachment_path,...meta}=msg;
+        if(attachment_path){
+          const {data:blob,error}=await sb.storage.from(CHAT_FILES_BUCKET).download(attachment_path);
+          if(error || !blob)throw new Error('No pude recuperar un adjunto del chat: '+friendly(error));
+          extraBytes+=blob.size;
+          if(extraBytes>120*1024*1024)throw new Error('Los adjuntos del chat superan 120 MB; usa un computador para respaldar archivos grandes.');
+          const ext=fileExtension(attachment_path),file=`chat/${msg.id}.${ext}`;
+          zip.file(file,blob);meta.file=file;
+        }
+        manifest.chat.push({...meta,author});
+        human.push(`CHAT · ${author} · ${msg.created_at}`, msg.kind==='sticker'?'[Sticker compartido]':msg.kind==='audio'?'[Audio adjunto]':msg.kind==='file'?`[Archivo ${msg.file_name}]`:msg.body, '');
+      }
+      for(const goal of allGoals)human.push(`META: ${goal.name}`,`Objetivo: ${goal.target_clp} CLP`,'');
+      for(const entry of allEntries)human.push(`APORTE: ${entry.amount_clp} CLP`,`Nota: ${entry.note||''}`,'');
       for(const song of allSongs){
         manifest.songs.push(song);
         human.push(`CANCIÓN: ${song.title} — ${song.artist||''}`,`YouTube: https://www.youtube.com/watch?v=${song.youtube_id}`,`Dedicatoria: ${song.dedication||''}`,'');
@@ -1025,7 +1450,7 @@
       try { localStorage.setItem(BACKUP_KEY, new Date().toISOString()); } catch (_) {}
       backupStatus();
       backupProgress('Descarga iniciada. Verifica el archivo en Descargas.', 1);
-      text($('backupMessage'), `Se inició la descarga del ZIP: ${allPhotos.length} fotos, ${allVideos.length} videos, ${allSongs.length} canciones y ${allNotes.length} notas. Guarda otra copia privada.`, true);
+      text($('backupMessage'), `Se inició la descarga del ZIP: ${allPhotos.length} fotos, ${allVideos.length} videos, ${allSongs.length} canciones, ${allNotes.length} notas y ${allChat.length} mensajes de chat, ${allStickers.length} stickers y ${allGoals.length} metas. Guarda otra copia privada.`, true);
     } catch(err) {
       text($('backupMessage'), `No se pudo completar el respaldo: ${friendly(err)}`);
       hide($('backupProgress'));
@@ -1063,9 +1488,24 @@
       const rawJson = await manifestFile.async('string');
       if (rawJson.length > 8 * 1024 * 1024) throw new Error('El registro del respaldo es demasiado grande.');
       const data = JSON.parse(rawJson);
-      if (data.format !== 'fer-alxs-backup' || ![2,3].includes(data.version) || !Array.isArray(data.photos) || !Array.isArray(data.notes)) throw new Error('Formato de respaldo incompatible.');
+      if (data.format !== 'fer-alxs-backup' || ![2,3,4].includes(data.version) || !Array.isArray(data.photos) || !Array.isArray(data.notes)) throw new Error('Formato de respaldo incompatible.');
       if (data.photos.length > 5000 || data.notes.length > 10000) throw new Error('El ZIP supera los límites de restauración desde esta web.');
-      if(data.version===3 && (!Array.isArray(data.songs)||!Array.isArray(data.videos)))throw new Error('El respaldo nuevo no tiene sección de canciones o videos.');
+      if(data.version>=3 && (!Array.isArray(data.songs)||!Array.isArray(data.videos)))throw new Error('El respaldo nuevo no tiene sección de canciones o videos.');
+      if(data.version>=4 && (!Array.isArray(data.chat)||!Array.isArray(data.stickers)||!Array.isArray(data.goals)||!Array.isArray(data.entries)))throw new Error('Faltan datos de la versión 4 del respaldo.');
+      if(data.chat!=null && (!Array.isArray(data.chat)||data.chat.length>20000))throw new Error('Chat inválido o demasiado grande para restaurar.');
+      if((data.stickers||[]).length>200||(data.goals||[]).length>1000||(data.entries||[]).length>20000)throw new Error('Los stickers o ahorros superan el límite permitido.');
+      for(const s of (data.stickers||[])){
+        if(!validSourceId(s.id)||!new RegExp(`^stickers/${s.id}\\.(png|webp|gif)$`,'i').test(s.file)||!zip.file(s.file)||zip.file(s.file)?._data?.uncompressedSize>2*1024*1024)throw new Error('Sticker incompatible en respaldo.');
+      }
+      for(const msg of (data.chat||[])){
+        if(!validSourceId(msg.id)||!['text','sticker','file','audio'].includes(msg.kind)||typeof msg.body!=='string'||msg.body.length>1500)throw new Error('El respaldo contiene un mensaje incompatible.');
+        if(msg.kind==='sticker' && !stickerById(msg.sticker_code) && !validSourceId(msg.sticker_id))throw new Error('Sticker del chat inválido.');
+        if(['file','audio'].includes(msg.kind)){
+          if(!new RegExp(`^chat/${msg.id}\\.(pdf|txt|csv|jpg|png|webp|gif|zip|docx|xlsx|webm|ogg|m4a)$`,'i').test(msg.file)||!zip.file(msg.file)||zip.file(msg.file)?._data?.uncompressedSize>12*1024*1024)throw new Error('Adjunto no válido en el respaldo.');
+        }
+      }
+      for(const goal of (data.goals||[]))if(!validSourceId(goal.id)||typeof goal.name!=='string'||goal.name.length>70||!Number.isInteger(goal.target_clp)||goal.target_clp<1000||goal.target_clp>1e9)throw new Error('Una meta tiene datos inválidos.');
+      for(const entry of (data.entries||[]))if(!validSourceId(entry.id)||!validSourceId(entry.goal_id)||!Number.isInteger(entry.amount_clp)||Math.abs(entry.amount_clp)>1e9||entry.amount_clp===0)throw new Error('Movimiento de ahorro inválido.');
       if((data.videos||[]).length>1000||(data.songs||[]).length>10000)throw new Error('Demasiados videos o canciones para restaurar desde un celular.');
       for(const row of (data.videos||[])){
         if(!validSourceId(row.id)||!new RegExp(`^videos/${row.id}\\.(mp4|webm)$`,'i').test(row.file)||!zip.file(row.file))throw new Error('Archivo de video faltante o inválido en respaldo.');
@@ -1078,7 +1518,7 @@
         if (entry?._data?.uncompressedSize > 9 * 1024 * 1024) throw new Error('El ZIP contiene una fotografía demasiado grande.');
       }
       for (const row of data.notes) if (!validSourceId(row.id) || !['message','reminder'].includes(row.type) || typeof row.content !== 'string' || row.content.length > 500) throw new Error('El ZIP contiene una nota incompatible.');
-      if (!window.confirm(`Este ZIP contiene ${data.photos.length} fotos, ${(data.videos||[]).length} videos, ${(data.songs||[]).length} canciones y ${data.notes.length} notas.\n\nSe recuperarán los que aún no existan, usando tu cuenta como responsable de la restauración. Los nombres originales se conservarán como autores.\n\n¿Quieres continuar?`)) {
+      if (!window.confirm(`Este ZIP contiene ${data.photos.length} fotos, ${(data.videos||[]).length} videos, ${(data.songs||[]).length} canciones y ${data.notes.length} notas, ${(data.chat||[]).length} mensajes de chat.\n\nSe recuperarán los que aún no existan, usando tu cuenta como responsable de la restauración. Los nombres originales se conservarán como autores.\n\n¿Quieres continuar?`)) {
         text($('backupMessage'), 'Restauración cancelada.');
         return;
       }
@@ -1095,10 +1535,22 @@
       const [existingSongs,existingVideos]=await Promise.all([
         fetchAll('couple_songs','id,backup_source_id'),fetchAll('couple_videos','id,backup_source_id')
       ]);
+      const existingChat=await fetchAll('couple_chat','id,backup_source_id');
+      const chatIds=new Set(existingChat.flatMap(r=>[r.id,r.backup_source_id].filter(Boolean)));
+      const [existingStickers,existingGoals,existingEntries]=await Promise.all([
+        fetchAll('couple_stickers','id,backup_source_id'),
+        fetchAll('couple_saving_goals','id,backup_source_id'),
+        fetchAll('couple_saving_entries','id,backup_source_id')
+      ]);
+      const stickerIds=new Set(existingStickers.flatMap(r=>[r.id,r.backup_source_id].filter(Boolean)));
+      const stickerIdMap=new Map(existingStickers.flatMap(r=>[[r.id,r.id],...(r.backup_source_id?[[r.backup_source_id,r.id]]:[])]));
+      const goalIds=new Set(existingGoals.flatMap(r=>[r.id,r.backup_source_id].filter(Boolean)));
+      const goalIdMap=new Map(existingGoals.flatMap(r=>[[r.id,r.id],...(r.backup_source_id?[[r.backup_source_id,r.id]]:[])]));
+      const entryIds=new Set(existingEntries.flatMap(r=>[r.id,r.backup_source_id].filter(Boolean)));
       const songIds=new Set(existingSongs.flatMap(r=>[r.id,r.backup_source_id].filter(Boolean)));
       const videoIds=new Set(existingVideos.flatMap(r=>[r.id,r.backup_source_id].filter(Boolean)));
       const photoIdMap = new Map(existingPhotos.flatMap(r=>[[r.id,r.id], ...(r.backup_source_id?[[r.backup_source_id,r.id]]:[])]));
-      const total = data.photos.length + data.notes.length + (data.videos||[]).length + (data.songs||[]).length;
+      const total = data.photos.length + data.notes.length + (data.videos||[]).length + (data.songs||[]).length + (data.chat||[]).length+(data.stickers||[]).length+(data.goals||[]).length+(data.entries||[]).length;
       let index = 0;
       for (const row of data.photos) {
         index++;
@@ -1177,8 +1629,62 @@
         const {error}=await sb.from('couple_songs').insert(payload);if(error)throw error;
         restoredSongs++;songIds.add(sourceId);
       }
-      await Promise.all([loadPhotos(true),loadNotes(),loadVideos(),loadSongs()]);
-      text($('backupMessage'), `Restauración terminada: ${restoredPhotos} fotos, ${restoredVideos} videos, ${restoredSongs} canciones y ${restoredNotes} notas; ${skipped} ya existían.`, true);
+      let restoredStickers=0,restoredGoals=0,restoredEntries=0;
+      for(const row of (data.stickers||[])){
+        index++;
+        backupProgress(`Restaurando sticker ${index} de ${total}…`,.1+.85*index/Math.max(total,1));
+        const sid=validSourceId(row.backup_source_id)?row.backup_source_id:row.id;
+        if(stickerIds.has(row.id)||stickerIds.has(sid)){skipped++;continue;}
+        const blob=await zip.file(row.file).async('blob'),ext=fileExtension(row.file);
+        const mime={png:'image/png',webp:'image/webp',gif:'image/gif'}[ext];
+        const path=`${activeUser.id}/restored-${sid}-${crypto.randomUUID()}.${ext}`;
+        const {error:up}=await sb.storage.from(STICKER_BUCKET).upload(path,blob,{contentType:mime,upsert:false});if(up)throw up;
+        const {data:ins,error}=await sb.from('couple_stickers').insert({user_id:activeUser.id,name:cut(row.name,50)||'Sticker',pack_name:cut(row.pack_name,40)||'Recuperados',storage_path:path,backup_source_id:sid}).select('id').single();
+        if(error){await sb.storage.from(STICKER_BUCKET).remove([path]);throw error;}
+        stickerIdMap.set(row.id,ins.id);stickerIdMap.set(sid,ins.id);stickerIds.add(sid);restoredStickers++;
+      }
+      for(const row of (data.goals||[])){
+        index++;
+        const sid=validSourceId(row.backup_source_id)?row.backup_source_id:row.id;
+        if(goalIds.has(row.id)||goalIds.has(sid)){skipped++;continue;}
+        const {data:ins,error}=await sb.from('couple_saving_goals').insert({user_id:activeUser.id,name:cut(row.name,70),target_clp:row.target_clp,target_date:typeof row.target_date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(row.target_date)?row.target_date:null,backup_source_id:sid}).select('id').single();
+        if(error)throw error;goalIdMap.set(row.id,ins.id);goalIdMap.set(sid,ins.id);goalIds.add(sid);restoredGoals++;
+      }
+      for(const row of (data.entries||[])){
+        index++;
+        const sid=validSourceId(row.backup_source_id)?row.backup_source_id:row.id;
+        if(entryIds.has(row.id)||entryIds.has(sid)){skipped++;continue;}
+        const goalId=goalIdMap.get(row.goal_id);if(!goalId){skipped++;continue;}
+        const payload={user_id:activeUser.id,goal_id:goalId,amount_clp:row.amount_clp,note:cut(row.note,100),backup_source_id:sid};
+        if(typeof row.created_at==='string'&&!Number.isNaN(Date.parse(row.created_at)))payload.created_at=row.created_at;
+        const {error}=await sb.from('couple_saving_entries').insert(payload);if(error)throw error;
+        entryIds.add(sid);restoredEntries++;
+      }
+      let restoredChat=0;
+      for(const row of (data.chat||[])){
+        index++;
+        backupProgress(`Restaurando chat ${index} de ${total}…`,.1+.85*index/Math.max(total,1));
+        const sourceId=validSourceId(row.backup_source_id)?row.backup_source_id:row.id;
+        if(chatIds.has(row.id)||chatIds.has(sourceId)){skipped++;continue;}
+        let path=null;
+        if(['file','audio'].includes(row.kind)){
+          const ext=fileExtension(row.file),mime=chatTypes[row.file_mime]===ext?row.file_mime:Object.keys(chatTypes).find(t=>chatTypes[t]===ext);
+          if(!mime)throw new Error('El respaldo contiene un adjunto de formato no permitido.');
+          const body=await zip.file(row.file).async('blob');
+          path=`${activeUser.id}/restored-${sourceId}-${crypto.randomUUID()}.${ext}`;
+          const {error:up}=await sb.storage.from(CHAT_FILES_BUCKET).upload(path,body,{contentType:mime,upsert:false});if(up)throw up;
+        }
+        const payload={user_id:activeUser.id,kind:row.kind,body:cut(row.body,1500),sticker_code:row.kind==='sticker'&&!row.sticker_id?row.sticker_code:null,
+          sticker_id:row.sticker_id?stickerIdMap.get(row.sticker_id)||null:null,
+          attachment_path:path,file_name:path?cut(row.file_name,120)||'Adjunto restaurado':null,file_mime:path?(chatTypes[row.file_mime]?row.file_mime:Object.keys(chatTypes).find(t=>chatTypes[t]===fileExtension(row.file))):null,
+          reply_preview:cut(row.reply_preview,140),reply_author:cut(row.reply_author,35),backup_source_id:sourceId,original_author_name:cut(row.original_author_name||row.author||people[row.user_id]||'Mi amor',35)};
+        if(typeof row.created_at==='string'&&!Number.isNaN(Date.parse(row.created_at)))payload.created_at=row.created_at;
+        const {error}=await sb.from('couple_chat').insert(payload);
+        if(error){if(path)await sb.storage.from(CHAT_FILES_BUCKET).remove([path]).catch(()=>{});throw error;}
+        chatIds.add(sourceId);restoredChat++;
+      }
+      await Promise.all([loadPhotos(true),loadNotes(),loadVideos(),loadSongs(),loadStickers(),loadSavings(),loadChat(true)]);
+      text($('backupMessage'), `Restauración terminada: ${restoredPhotos} fotos, ${restoredVideos} videos, ${restoredSongs} canciones y ${restoredNotes} notas, ${restoredChat} mensajes, ${restoredStickers} stickers, ${restoredGoals} metas y ${restoredEntries} movimientos; ${skipped} ya existían.`, true);
 
       backupProgress('Restauración completada.', 1);
     } catch(err) {
