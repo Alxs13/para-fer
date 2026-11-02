@@ -1158,10 +1158,61 @@
     });$('chatStickerGrid').append(b);
   }
 
+  // GESTIÓN DE STICKERS: los enviados se retiran de la colección, pero siguen en el historial.
+  // Los stickers nunca enviados se pueden eliminar también del almacenamiento privado.
+  let stickerManageMode = false;
+  const stickerManageBtn = $('stickerManageBtn');
+  function setStickerManageMode(enabled) {
+    stickerManageMode = enabled;
+    stickerManageBtn.setAttribute('aria-pressed',String(enabled));
+    stickerManageBtn.textContent = enabled ? 'Terminar gestión' : 'Gestionar stickers';
+    $('chatStickerGrid').classList.toggle('is-managing',enabled);
+    renderStickers();
+    if(enabled)text($('stickerStatus'),'Pulsa la papelera del sticker que importaste para quitarlo. Los enviados seguirán en el chat.');
+  }
+  stickerManageBtn.addEventListener('click',()=>setStickerManageMode(!stickerManageMode));
+
+  async function removeSavedSticker(s,button){
+    if (!activeUser || s.user_id!==activeUser.id || !stickerManageMode) return;
+    if (!confirm(`¿Eliminar «${s.name}» de la colección compartida? Si aparece en conversaciones anteriores, seguirá visible allí.`))return;
+    button.disabled=true;
+    try {
+      // Detecta referencias antes de borrar: la FK además protege ante mensajes simultáneos.
+      const {count,error:countError}=await sb.from('couple_chat')
+        .select('id',{count:'exact',head:true}).eq('sticker_id',s.id);
+      if(countError)throw countError;
+      let keepHistory = (count||0)>0;
+      if(!keepHistory){
+        const {data:deleted,error:deleteError}=await sb.from('couple_stickers')
+          .delete().eq('id',s.id).eq('user_id',activeUser.id).select('id');
+        if(deleteError){
+          if(deleteError.code==='23503')keepHistory=true;
+          else throw deleteError;
+        }else if(!deleted?.length)throw new Error('No se pudo eliminar. Comprueba el permiso del propietario.');
+        else {
+          const {error:fileError}=await sb.storage.from(STICKER_BUCKET).remove([s.storage_path]);
+          if(fileError)text($('stickerStatus'),'Sticker eliminado, pero el archivo no se pudo limpiar del almacenamiento: '+friendly(fileError));
+        }
+      }
+      if(keepHistory){
+        const {data:archived,error:archiveError}=await sb.from('couple_stickers')
+          .update({archived_at:new Date().toISOString()})
+          .eq('id',s.id).eq('user_id',activeUser.id).select('id');
+        if(archiveError)throw archiveError;
+        if(!archived?.length)throw new Error('No se pudo retirar el sticker de la colección.');
+      }
+      await loadStickers();
+      text($('stickerStatus'),keepHistory
+        ? 'Sticker retirado de la colección. Los mensajes enviados lo conservan.'
+        : 'Sticker eliminado de la colección y del almacenamiento.',true);
+    }catch(err){text($('stickerStatus'),'No se pudo eliminar: '+friendly(err));}
+    finally{button.disabled=false;}
+  }
+
   // IMPORTAR, GUARDAR Y ENVIAR STICKERS PRIVADOS (PNG / WEBP / GIF).
   async function loadStickers(){
     if(!activeUser)return;
-    const {data,error}=await sb.from('couple_stickers').select('id,user_id,name,pack_name,storage_path,created_at,backup_source_id').order('created_at',{ascending:false}).limit(200);
+    const {data,error}=await sb.from('couple_stickers').select('id,user_id,name,pack_name,storage_path,created_at,backup_source_id,archived_at').order('created_at',{ascending:false}).limit(200);
     if(error){text($('stickerStatus'),'Ejecuta 04_chat_ahorros.sql: '+friendly(error));return;}
     const arr=data||[];
     const {data:links,error:signErr}=arr.length?await sb.storage.from(STICKER_BUCKET).createSignedUrls(arr.map(s=>s.storage_path),3600):{data:[],error:null};
@@ -1172,18 +1223,32 @@
   }
   function renderStickers(){
     const grid=$('chatStickerGrid');
-    grid.querySelectorAll('.sticker-custom-pick').forEach(el=>el.remove());
-    for(const s of customStickers){
-      const b=document.createElement('button');b.type='button';b.className='sticker-custom-pick';b.title='Enviar '+s.name;
-      const img=document.createElement('img');img.src=s.signedUrl||'';img.alt=s.name;img.loading='lazy';
-      const title=document.createElement('small');title.textContent=(s.pack_name?s.pack_name+' · ':'')+s.name;
-      b.append(img,title);b.addEventListener('click',()=>sendCustomSticker(s.id));grid.append(b);
+    grid.querySelectorAll('.sticker-custom-tile').forEach(el=>el.remove());
+    const available=customStickers.filter(s=>!s.archived_at);
+    for(const sticker of available){
+      const tile=document.createElement('div');tile.className='sticker-custom-tile';
+      const send=document.createElement('button');send.type='button';send.className='sticker-custom-pick';
+      send.title='Enviar '+sticker.name;
+      send.disabled=stickerManageMode;
+      const img=document.createElement('img');img.src=sticker.signedUrl||'';img.alt=sticker.name;img.loading='lazy';
+      const title=document.createElement('small');title.textContent=(sticker.pack_name?sticker.pack_name+' · ':'')+sticker.name;
+      send.append(img,title);send.addEventListener('click',()=>sendCustomSticker(sticker.id));
+      tile.append(send);
+      if(sticker.user_id===activeUser?.id){
+        const del=document.createElement('button');del.type='button';del.className='sticker-remove-btn';
+        del.title='Eliminar '+sticker.name;del.setAttribute('aria-label','Eliminar sticker '+sticker.name);
+        del.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 10v7M14 10v7"/></svg>';
+        del.addEventListener('click',()=>removeSavedSticker(sticker,del));tile.append(del);
+      }
+      grid.append(tile);
     }
-    if(!customStickers.length)text($('stickerStatus'),'Importa tu primer sticker y aparecerá aquí.');
-    else text($('stickerStatus'),`${customStickers.length} stickers guardados entre los dos.`,true);
+    if(!stickerManageMode){
+      if(!available.length)text($('stickerStatus'),'Importa tu primer sticker y aparecerá aquí.');
+      else text($('stickerStatus'),`${available.length} stickers disponibles entre los dos.`,true);
+    }
   }
   async function sendCustomSticker(id){
-    if(!activeUser||chatBusy)return;
+    if(!activeUser||chatBusy||stickerManageMode||!customStickers.some(s=>s.id===id&&!s.archived_at))return;
     chatBusy=true;
     try{
       const {error}=await sb.from('couple_chat').insert({user_id:activeUser.id,kind:'sticker',sticker_id:id,body:'',reply_preview:replyDraft?.body.slice(0,140)||'',reply_author:replyDraft?.author.slice(0,35)||''});
@@ -1195,7 +1260,7 @@
     const files=[...(e.target.files||[])];if(!files.length||!activeUser)return;
     const pack=$('chatStickerPack').value.trim().slice(0,40)||'Nuestra colección';
     if(files.length>15){text($('stickerStatus'),'Elige máximo 15 stickers de una vez.');return;}
-    if(customStickers.length+files.length>100){text($('stickerStatus'),'Máximo 100 stickers entre ambos.');return;}
+    if(customStickers.filter(s=>!s.archived_at).length+files.length>100){text($('stickerStatus'),'Máximo 100 stickers entre ambos.');return;}
     let done=0;
     try{
       for(const file of files){
@@ -1366,7 +1431,7 @@
       ]);
       const [allChat, allStickers, allGoals, allEntries]=await Promise.all([
         fetchAll('couple_chat','id,user_id,kind,body,sticker_code,sticker_id,attachment_path,file_name,file_mime,reply_preview,reply_author,created_at,original_author_name,backup_source_id'),
-        fetchAll('couple_stickers','id,user_id,name,pack_name,storage_path,created_at,backup_source_id'),
+        fetchAll('couple_stickers','id,user_id,name,pack_name,storage_path,created_at,backup_source_id,archived_at'),
         fetchAll('couple_saving_goals','id,user_id,name,target_clp,target_date,created_at,backup_source_id'),
         fetchAll('couple_saving_entries','id,goal_id,user_id,amount_clp,note,created_at,backup_source_id')
       ]);
@@ -1641,7 +1706,7 @@
         const mime={png:'image/png',webp:'image/webp',gif:'image/gif'}[ext];
         const path=`${activeUser.id}/restored-${sid}-${crypto.randomUUID()}.${ext}`;
         const {error:up}=await sb.storage.from(STICKER_BUCKET).upload(path,blob,{contentType:mime,upsert:false});if(up)throw up;
-        const {data:ins,error}=await sb.from('couple_stickers').insert({user_id:activeUser.id,name:cut(row.name,50)||'Sticker',pack_name:cut(row.pack_name,40)||'Recuperados',storage_path:path,backup_source_id:sid}).select('id').single();
+        const {data:ins,error}=await sb.from('couple_stickers').insert({user_id:activeUser.id,name:cut(row.name,50)||'Sticker',pack_name:cut(row.pack_name,40)||'Recuperados',storage_path:path,backup_source_id:sid,archived_at:typeof row.archived_at==='string'&&!Number.isNaN(Date.parse(row.archived_at))?row.archived_at:null}).select('id').single();
         if(error){await sb.storage.from(STICKER_BUCKET).remove([path]);throw error;}
         stickerIdMap.set(row.id,ins.id);stickerIdMap.set(sid,ins.id);stickerIds.add(sid);restoredStickers++;
       }

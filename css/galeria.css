@@ -342,3 +342,16 @@
 .v7-section .page-heading h1 em{color:var(--gold)}
 
 .v7-vault{padding:16px;border:1px solid #a76f805f;background:#54203855;border-radius:16px;margin-top:16px}.v7-vault h4{font:500 20px var(--serif);margin:0 0 10px;color:#f8e2d6}.v7-vault>label{display:grid;gap:7px;color:#f0d0d6;font-size:12px;margin:10px 0}.v7-vault input{width:100%;border:1px solid #885468;border-radius:10px;padding:11px;background:#331321;color:#fff}.v7-vault .btn-secondary{flex:1}.v7-notification-panel{position:fixed;top:70px;right:12px;z-index:31;width:min(370px,calc(100vw - 24px));max-height:50dvh;overflow:auto;padding:16px;border:1px solid #b5808b;border-radius:19px;background:#331020;color:#f7e3dd;box-shadow:0 20px 40px #050105cc}.v7-notification-panel h3{font:500 22px var(--serif);margin:0 0 13px}.v7-notification-panel button{border:1px solid #9b687a;border-radius:10px;padding:9px;background:#59263e;color:#fff}.v7-notification-row{padding:10px;border-bottom:1px solid #8d526348;color:#e4c5cc;font-size:12px}
+
+/* Fusión v7.3 — gestión segura de stickers guardados. */
+.sticker-manage-btn{align-self:center;appearance:none;border:1px solid #d6a4ae9c;border-radius:12px;background:#371222;color:#fff0eb;font-size:12px;font-weight:700;padding:10px 12px;min-height:42px;white-space:nowrap}
+.sticker-manage-btn[aria-pressed="true"]{background:#9c3255;box-shadow:0 0 0 2px #f0c6c452}
+.sticker-custom-tile{position:relative;min-width:0;isolation:isolate}
+.sticker-custom-tile .sticker-custom-pick{width:100%;height:100%;min-width:0}
+.sticker-custom-tile .sticker-custom-pick:disabled{opacity:.80;cursor:default}
+.sticker-remove-btn{display:none;position:absolute;right:5px;top:5px;z-index:2;width:35px;height:35px;min-width:35px;min-height:35px;align-items:center;justify-content:center;border:1px solid #ffc3d1b8;border-radius:11px;color:#fff8f8;background:#a12448;box-shadow:0 5px 15px #21061091}
+.sticker-remove-btn svg{width:18px;height:18px}
+.chat-sticker-grid.is-managing .sticker-custom-tile .sticker-remove-btn{display:inline-flex}
+.sticker-remove-btn:disabled{opacity:.45}
+.sticker-remove-btn:focus-visible,.sticker-manage-btn:focus-visible{outline:3px solid #ffd6a9;outline-offset:2px}
+@media(max-width:470px){.sticker-manage-btn{flex:1 1 120px}.chat-sticker-grid.is-managing .sticker-custom-tile{outline:1px solid #db94a966;border-radius:15px}}
