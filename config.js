@@ -1,7 +1,5 @@
-// EDITAR SOLO LAS DOS CADENAS DE ABAJO.
-// Usa la clave PUBLISHABLE o ANON del proyecto, NUNCA service_role ni secret.
 window.COUPLE_CONFIG = {
-  SUPABASE_URL: "PEGA_AQUI_TU_PROJECT_URL",
-  SUPABASE_ANON_KEY: "PEGA_AQUI_TU_PUBLISHABLE_KEY",
+  SUPABASE_URL: "https://kmhojwwpjjjkqwdtbmjv.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_EvW7SsMDQplYQ8PJ8JWFcg_lhxY-_RV",
   BUCKET: "fer-alxs"
 };
