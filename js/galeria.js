@@ -166,6 +166,7 @@
       .subscribe();
     miscSub = sb.channel('couple-chat-extras-live')
       .on('postgres_changes',{event:'*',schema:'public',table:'couple_stickers'},()=>{if(activeUser)loadStickers().catch(console.warn);})
+      .on('postgres_changes',{event:'*',schema:'public',table:'couple_sticker_favorites'},()=>{if(activeUser)loadFavoriteStickers().catch(console.warn);})
       .on('postgres_changes',{event:'*',schema:'public',table:'couple_saving_goals'},()=>{if(activeUser && page==='savings')loadSavings().catch(console.warn);})
       .on('postgres_changes',{event:'*',schema:'public',table:'couple_saving_entries'},()=>{if(activeUser && page==='savings')loadSavings().catch(console.warn);})
       .subscribe();
@@ -206,7 +207,7 @@
     window.dispatchEvent(new CustomEvent('fer-page', {detail:name}));
     if (name === 'cards') scrollToCard(activeCard, false);
     if(name === 'savings') loadSavings().catch(e=>text($('savingsStatus'),friendly(e)));
-    if(name === 'chat') { loadStickers().catch(console.warn); loadChat(true).catch(e=>text($('chatStatus'),friendly(e))); }
+    if(name === 'chat') { loadStickers().catch(console.warn); loadFavoriteStickers().catch(console.warn); loadChat(true).catch(e=>text($('chatStatus'),friendly(e))); }
     if(name === 'calendar') loadCalendar().catch(e=>text($('calendarDetails'),friendly(e)));
     if(name === 'music') { populateSongPhotos(); loadSongs().catch(e=>text($('musicStatus'),friendly(e))); }
     if(name === 'videos') loadVideos().catch(e=>text($('videoStatus'),friendly(e)));
@@ -985,6 +986,77 @@
   // CHAT PRIVADO — misma cuenta Supabase y reglas RLS del álbum.
   let miscSub = null;
   let customStickers = [];
+  let favoriteStickers = new Set(); // La colección de favoritos es de AMBOS, no local al navegador.
+  let stickerPickerMode = 'emoji';
+  let favoriteEnabled = true;
+  const customKey = id => `custom:${id}`;
+  const builtinKey = id => `builtin:${id}`;
+  function hasFavorite(key) { return favoriteStickers.has(key); }
+  async function loadFavoriteStickers() {
+    if(!activeUser)return;
+    const {data,error}=await sb.from('couple_sticker_favorites').select('sticker_key').limit(300);
+    if(error){
+      favoriteEnabled=false;
+      text($('stickerStatus'),'Favoritos requiere activar el SQL 08_favoritos_compartidos.sql. Los stickers normales siguen disponibles.');
+      return;
+    }
+    favoriteEnabled=true;
+    favoriteStickers=new Set((data||[]).map(r=>r.sticker_key));
+    $('favCount').textContent=String(favoriteStickers.size);
+    renderStickers();
+  }
+  async function toggleFavorite(key,button){
+    if(!activeUser||!favoriteEnabled)return text($('stickerStatus'),'Primero ejecuta 08_favoritos_compartidos.sql en Supabase.');
+    if(!/^(builtin:[a-z0-9_-]{1,60}|custom:[a-f0-9-]{36})$/.test(key))return;
+    const adding=!hasFavorite(key);
+    button.disabled=true;
+    try {
+      const query=adding
+        ? sb.from('couple_sticker_favorites').upsert({sticker_key:key,added_by:activeUser.id},{onConflict:'sticker_key',ignoreDuplicates:true})
+        : sb.from('couple_sticker_favorites').delete().eq('sticker_key',key);
+      const {error}=await query;
+      if(error)throw error;
+      await loadFavoriteStickers();
+      text($('stickerStatus'),adding?'Agregado a favoritos de ambos.':'Retirado de favoritos de ambos.',true);
+    }catch(e){text($('stickerStatus'),'No se pudo cambiar el favorito: '+friendly(e));}
+    finally{button.disabled=false;}
+  }
+  function makeFavoriteButton(key,label){
+    const b=document.createElement('button'); b.type='button';
+    b.className='sticker-favorite-btn'+(hasFavorite(key)?' is-favorite':'');
+    b.textContent=hasFavorite(key)?'★':'☆';
+    b.title=hasFavorite(key)?'Quitar de favoritos compartidos':'Guardar en favoritos compartidos';
+    b.setAttribute('aria-label',b.title);
+    b.setAttribute('aria-pressed',String(hasFavorite(key)));
+    b.addEventListener('click',e=>{e.stopPropagation();toggleFavorite(key,b);});
+    return b;
+  }
+  function renderFavoriteGrid(){
+    const grid=$('chatFavoritesGrid'); grid.replaceChildren();
+    for(const s of stickerCatalog){
+      if(!hasFavorite(builtinKey(s.id)))continue;
+      const tile=document.createElement('div');tile.className='sticker-custom-tile';
+      const send=document.createElement('button');send.type='button';send.className='sticker-pick';send.innerHTML=stickerHTML(s.id);
+      send.title='Enviar '+s.title;
+      send.addEventListener('click',()=>sendBuiltinSticker(s.id));
+      tile.append(send,makeFavoriteButton(builtinKey(s.id),s.title));grid.append(tile);
+    }
+    for(const s of customStickers){
+      if(s.archived_at||!hasFavorite(customKey(s.id)))continue;
+      const tile=document.createElement('div');tile.className='sticker-custom-tile';
+      const send=document.createElement('button');send.type='button';send.className='sticker-custom-pick';
+      send.title='Enviar '+s.name;
+      const im=document.createElement('img');im.src=s.signedUrl||'';im.alt=s.name;im.loading='lazy';
+      const caption=document.createElement('small');caption.textContent=s.name;
+      send.append(im,caption);send.addEventListener('click',()=>sendCustomSticker(s.id));
+      tile.append(send,makeFavoriteButton(customKey(s.id),s.name));grid.append(tile);
+    }
+    if(!grid.children.length){
+      const empty=document.createElement('div');empty.className='sticker-favorites-empty';
+      empty.textContent='Todavía no tienen stickers favoritos. Abre «Todos» y toca ☆ en los que quieran compartir.';
+      grid.append(empty);
+    }
+  }
   let savingsGoals = [];
   let savingsEntries = [];
   const CHAT_FILES_BUCKET = 'fer-alxs-chat';
@@ -1134,29 +1206,48 @@
   chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing && window.matchMedia('(min-width:700px)').matches){e.preventDefault();$('chatForm').requestSubmit();}});
   $('chatPickerToggle').addEventListener('click',()=>{$('chatPicker').classList.toggle('hidden');});
   function setPickerTab(name){
-    const stickers=name==='sticker';
-    $('chatEmojiTab').classList.toggle('active',!stickers);$('chatStickerTab').classList.toggle('active',stickers);
-    $('chatEmojiGrid').classList.toggle('hidden',stickers);$('chatStickerGrid').classList.toggle('hidden',!stickers);$('chatStickerImport').classList.toggle('hidden',!stickers);
+    stickerPickerMode=name;
+    const emojis=name==='emoji', stickers=name==='sticker', favorites=name==='favorites';
+    $('chatEmojiTab').classList.toggle('active',emojis);
+    $('chatStickerTab').classList.toggle('active',stickers);
+    $('chatFavoritesTab').classList.toggle('active',favorites);
+    $('chatEmojiGrid').classList.toggle('hidden',!emojis);
+    $('chatStickerGrid').classList.toggle('hidden',!stickers);
+    $('chatFavoritesGrid').classList.toggle('hidden',!favorites);
+    $('chatStickerImport').classList.toggle('hidden',!stickers);
+    if(favorites)renderFavoriteGrid();
   }
   $('chatEmojiTab').addEventListener('click',()=>setPickerTab('emoji'));
   $('chatStickerTab').addEventListener('click',()=>setPickerTab('sticker'));
+  $('chatFavoritesTab').addEventListener('click',()=>setPickerTab('favorites'));
+  $('stickerImportHelp').addEventListener('click',()=>$('stickerImportGuide').classList.toggle('hidden'));
+  $('stickerImportGuideClose').addEventListener('click',()=>hide($('stickerImportGuide')));
   for(const em of ['❤️','🥹','😘','💕','🫶','🌹','✨','🥰','💌','🫂','💋','🌙','😍','💖','☀️','🎶']){
     const b=document.createElement('button');b.type='button';b.className='chat-emoji';b.textContent=em;b.setAttribute('aria-label','Agregar '+em);
     b.addEventListener('click',()=>{chatInput.value+=em;chatInput.dispatchEvent(new Event('input'));chatInput.focus();});$('chatEmojiGrid').append(b);
   }
-  for(const sticker of stickerCatalog){
-    const b=document.createElement('button');b.type='button';b.className='sticker-pick';b.innerHTML=stickerHTML(sticker.id);b.title='Enviar sticker '+sticker.title;
-    b.addEventListener('click',async()=>{
-      if(!activeUser || chatBusy)return;
-      chatBusy=true;
-      try{
-        const {error}=await sb.from('couple_chat').insert({user_id:activeUser.id,kind:'sticker',sticker_code:sticker.id,body:'',reply_preview:replyDraft?.body.slice(0,140)||'',reply_author:replyDraft?.author.slice(0,35)||''});
-        if(error)throw error;
-        hide($('chatPicker'));clearReply();await loadChat(true);chatWall.scrollTop=chatWall.scrollHeight;
-      }catch(err){text($('chatStatus'),friendly(err));}
-      finally{chatBusy=false;}
-    });$('chatStickerGrid').append(b);
+  async function sendBuiltinSticker(id) {
+    if(!activeUser || chatBusy)return;
+    chatBusy=true;
+    try{
+      const {error}=await sb.from('couple_chat').insert({user_id:activeUser.id,kind:'sticker',sticker_code:id,body:'',reply_preview:replyDraft?.body.slice(0,140)||'',reply_author:replyDraft?.author.slice(0,35)||''});
+      if(error)throw error;
+      hide($('chatPicker'));clearReply();await loadChat(true);chatWall.scrollTop=chatWall.scrollHeight;
+    }catch(err){text($('chatStatus'),friendly(err));}finally{chatBusy=false;}
   }
+  function renderBuiltins(){
+    const grid=$('chatStickerGrid');
+    grid.querySelectorAll('.sticker-builtin-tile').forEach(el=>el.remove());
+    for(const sticker of stickerCatalog){
+      const tile=document.createElement('div');tile.className='sticker-custom-tile sticker-builtin-tile';
+      const b=document.createElement('button');b.type='button';b.className='sticker-pick';b.innerHTML=stickerHTML(sticker.id);
+      b.title='Enviar sticker '+sticker.title;
+      b.addEventListener('click',()=>sendBuiltinSticker(sticker.id));
+      tile.append(b,makeFavoriteButton(builtinKey(sticker.id),sticker.title));
+      grid.append(tile);
+    }
+  }
+  renderBuiltins();
 
   // GESTIÓN DE STICKERS: los enviados se retiran de la colección, pero siguen en el historial.
   // Los stickers nunca enviados se pueden eliminar también del almacenamiento privado.
@@ -1231,6 +1322,7 @@
   function renderStickers(){
     const grid=$('chatStickerGrid');
     grid.querySelectorAll('.sticker-custom-tile').forEach(el=>el.remove());
+    renderBuiltins();
     const available=customStickers.filter(s=>!s.archived_at);
     for(const sticker of available){
       const tile=document.createElement('div');tile.className='sticker-custom-tile';
@@ -1240,7 +1332,7 @@
       const img=document.createElement('img');img.src=sticker.signedUrl||'';img.alt=sticker.name;img.loading='lazy';
       const title=document.createElement('small');title.textContent=(sticker.pack_name?sticker.pack_name+' · ':'')+sticker.name;
       send.append(img,title);send.addEventListener('click',()=>sendCustomSticker(sticker.id));
-      tile.append(send);
+      tile.append(send,makeFavoriteButton(customKey(sticker.id),sticker.name));
       {
         const del=document.createElement('button');del.type='button';del.className='sticker-remove-btn';
         del.title='Quitar sticker agregado '+sticker.name+' de la colección de los dos';del.setAttribute('aria-label','Quitar sticker agregado '+sticker.name);
@@ -1249,9 +1341,10 @@
       }
       grid.append(tile);
     }
+    renderFavoriteGrid();
     if(!stickerManageMode){
       if(!available.length)text($('stickerStatus'),'Importa tu primer sticker y aparecerá aquí.');
-      else text($('stickerStatus'),`${available.length} stickers disponibles entre los dos.`,true);
+      else text($('stickerStatus'),`${available.length} stickers disponibles entre los dos. Toca ☆ para favoritos compartidos.`,true);
     }
   }
   async function sendCustomSticker(id){
@@ -1442,13 +1535,14 @@
         fetchAll('couple_saving_goals','id,user_id,name,target_clp,target_date,created_at,backup_source_id'),
         fetchAll('couple_saving_entries','id,goal_id,user_id,amount_clp,note,created_at,backup_source_id')
       ]);
+      const allFavorites=await fetchAll('couple_sticker_favorites','sticker_key,added_by,created_at');
       const zip = new JSZip();
       const people = Object.fromEntries(members.map(m => [m.user_id, m.display_name]));
       const manifest = {
         format: 'fer-alxs-backup', version: 5,
         exported_at: new Date().toISOString(),
         members: members.map(m => ({ user_id: m.user_id, display_name:m.display_name })),
-        photos: [], notes: [], songs:[], videos:[], chat:[], stickers:[], goals:allGoals, entries:allEntries
+        photos: [], notes: [], songs:[], videos:[], chat:[], stickers:[], favorites:allFavorites.map(f=>f.sticker_key), goals:allGoals, entries:allEntries
       };
       const human = ['FER & ALXS · CÁPSULA DEL TIEMPO', `Exportado el ${new Date().toLocaleString('es-CL')}`, ''];
       for (const [index, row] of allPhotos.entries()) {
@@ -1567,6 +1661,7 @@
       if(data.version>=3 && (!Array.isArray(data.songs)||!Array.isArray(data.videos)))throw new Error('El respaldo nuevo no tiene sección de canciones o videos.');
       if(data.version>=4 && (!Array.isArray(data.chat)||!Array.isArray(data.stickers)||!Array.isArray(data.goals)||!Array.isArray(data.entries)))throw new Error('Faltan datos de la versión 4 del respaldo.');
       if(data.chat!=null && (!Array.isArray(data.chat)||data.chat.length>20000))throw new Error('Chat inválido o demasiado grande para restaurar.');
+      if(data.favorites != null && (!Array.isArray(data.favorites)||data.favorites.length>300||data.favorites.some(k=>typeof k!=='string'||!/^(builtin:[a-z0-9_-]{1,60}|custom:[a-f0-9-]{36})$/.test(k))))throw new Error('Favoritos inválidos en el respaldo.');
       if((data.stickers||[]).length>200||(data.goals||[]).length>1000||(data.entries||[]).length>20000)throw new Error('Los stickers o ahorros superan el límite permitido.');
       for(const s of (data.stickers||[])){
         if(!validSourceId(s.id)||!new RegExp(`^stickers/${s.id}\\.(png|webp|gif)$`,'i').test(s.file)||!zip.file(s.file)||zip.file(s.file)?._data?.uncompressedSize>2*1024*1024)throw new Error('Sticker incompatible en respaldo.');
@@ -1717,6 +1812,18 @@
         if(error){await sb.storage.from(STICKER_BUCKET).remove([path]);throw error;}
         stickerIdMap.set(row.id,ins.id);stickerIdMap.set(sid,ins.id);stickerIds.add(sid);restoredStickers++;
       }
+      // Restaura la selección compartida; no duplica favoritos existentes.
+      for(const key of (data.favorites||[])){
+        let mapped=key;
+        if(key.startsWith('custom:')){
+          const id=stickerIdMap.get(key.slice(7));
+          if(!id)continue; // sticker no disponible (nunca recrear una referencia rota)
+          mapped=customKey(id);
+        }
+        const {error:favError}=await sb.from('couple_sticker_favorites')
+          .upsert({sticker_key:mapped,added_by:activeUser.id},{onConflict:'sticker_key',ignoreDuplicates:true});
+        if(favError)throw favError;
+      }
       for(const row of (data.goals||[])){
         index++;
         const sid=validSourceId(row.backup_source_id)?row.backup_source_id:row.id;
@@ -1758,7 +1865,7 @@
         chatIds.add(sourceId);restoredChat++;
       }
       if(data.version===5 && window.FerV7Backup?.restore)await window.FerV7Backup.restore({data,zip,sb,activeUser});
-      await Promise.all([loadPhotos(true),loadNotes(),loadVideos(),loadSongs(),loadStickers(),loadSavings(),loadChat(true)]);
+      await Promise.all([loadPhotos(true),loadNotes(),loadVideos(),loadSongs(),loadStickers(),loadFavoriteStickers(),loadSavings(),loadChat(true)]);
       text($('backupMessage'), `Restauración terminada: ${restoredPhotos} fotos, ${restoredVideos} videos, ${restoredSongs} canciones y ${restoredNotes} notas, ${restoredChat} mensajes, ${restoredStickers} stickers, ${restoredGoals} metas y ${restoredEntries} movimientos; ${skipped} ya existían.`, true);
 
       backupProgress('Restauración completada.', 1);

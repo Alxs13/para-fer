@@ -359,3 +359,20 @@
 /* Fusión 7.4: gestión visible de todos los stickers importados en la colección mutua. */
 .chat-sticker-grid.is-managing .sticker-custom-tile{outline:1px solid #e8b4c277;border-radius:14px}
 .chat-sticker-grid.is-managing .sticker-custom-tile .sticker-remove-btn{display:inline-flex}
+
+/* Favoritos compartidos · V7.5 */
+.chat-picker-tabs{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
+.chat-picker-tabs button{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;flex:1;justify-content:center;min-height:38px;padding:8px 10px}
+.favorite-count{display:inline-flex;justify-content:center;align-items:center;min-width:20px;height:20px;border-radius:99px;background:#ffe6bf;color:#572039;font-weight:750;font-size:11px}
+.sticker-builtin-tile .sticker-pick{display:block;width:100%;height:100%}
+.sticker-custom-tile{position:relative}
+.sticker-favorite-btn{position:absolute;top:4px;left:4px;z-index:5;display:grid;place-items:center;width:39px;height:39px;border-radius:12px;border:1px solid #ffe8bc99;background:#351122df;color:#f7e6d0;font-size:25px;line-height:1;box-shadow:0 4px 15px #16040977;cursor:pointer}
+.sticker-favorite-btn.is-favorite{color:#ffdf91;background:#772546}
+.sticker-favorite-btn:focus-visible{outline:3px solid #f8d69c;outline-offset:2px}
+.sticker-favorite-btn:disabled{opacity:.5}
+.sticker-custom-tile .sticker-remove-btn{right:4px;left:auto}
+.sticker-favorites-empty{grid-column:1/-1;padding:22px;border:1px dashed #af738b;border-radius:16px;background:#54203a;color:#ffe9ee;line-height:1.5}
+.sticker-import-guide{grid-column:1/-1;border:1px solid #e5b2bc7b;border-radius:15px;padding:14px;background:#331121;color:#f4d8dd;line-height:1.6;font-size:13px}
+.sticker-import-guide p{margin:8px 0 12px}
+#chatFavoritesGrid .sticker-favorite-btn{z-index:3}
+@media(max-width:480px){.chat-picker-tabs{gap:4px}.chat-picker-tabs button{font-size:11px;padding:8px}.sticker-favorite-btn{min-width:37px;min-height:37px}}
