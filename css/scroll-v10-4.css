@@ -1,0 +1,83 @@
+/* Fer & Alxs Life OS 10.4 — desplazamiento nativo con UN dedo.
+   Resuelve el bloqueo de body/main de versiones inmersivas anteriores.
+   Mantiene el carrusel de Cartas como única superficie horizontal. */
+@media (max-width: 719px) {
+  /* Nunca bloquear la página al cambiar a Chat, Ocio, Vida o Más. */
+  html:has(#appView:not(.hidden)) {
+    height:auto !important;
+    overflow-y:auto !important;
+    overscroll-behavior-y:auto !important;
+  }
+  body:not(.fer77-immersive-cards):not(.life10-modal-open) {
+    height:auto !important;
+    min-height:100dvh;
+    overflow-y:auto !important;
+    overscroll-behavior-y:auto !important;
+    touch-action:pan-y pinch-zoom !important;
+  }
+  body:not(.fer77-immersive-cards):not(.life10-modal-open) #main,
+  body:not(.fer77-immersive-cards):not(.life10-modal-open) #appView {
+    height:auto !important;
+    min-height:0 !important;
+    overflow:visible !important;
+    touch-action:pan-y pinch-zoom !important;
+  }
+  body:not(.fer77-immersive-cards):not(.life10-modal-open) #appView > .page.active:not(#page-chat) {
+    height:auto !important;
+    max-height:none !important;
+    overflow:visible !important;
+    touch-action:pan-y pinch-zoom !important;
+  }
+  /* Chat: historial desplazable con un dedo; fuera de él también se puede desplazar la página. */
+  body.fer77-immersive-chat:not(.life10-modal-open) #page-chat.page.active {
+    display:block !important;
+    height:auto !important;
+    min-height:calc(100dvh - 146px - env(safe-area-inset-bottom)) !important;
+    overflow:visible !important;
+    touch-action:pan-y pinch-zoom !important;
+  }
+  body.fer77-immersive-chat #page-chat .chat-shell {
+    height:calc(100dvh - 148px - env(safe-area-inset-bottom)) !important;
+    min-height: min(480px, calc(100dvh - 148px - env(safe-area-inset-bottom))) !important;
+    overflow:hidden !important;
+    display:flex !important;
+    flex-direction:column !important;
+  }
+  body.fer77-immersive-chat #page-chat .chat-wall {
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch !important;
+    overscroll-behavior-y:auto !important;
+    touch-action:pan-y pinch-zoom !important;
+    scrollbar-width:thin;
+  }
+  #page-chat .chat-timeline,
+  #page-chat .chat-message,
+  #page-chat .chat-bubble,
+  #page-chat .chat-wall > * {
+    touch-action:pan-y pinch-zoom !important;
+  }
+  #page-chat .chat-compose,
+  #page-chat .chat-bar { flex-shrink:0 !important; }
+  /* Ocio: juegos y ruleta no capturan el gesto vertical de la página. */
+  #page-play, #page-play .life-games,
+  #page-play .life-leisure-grid, #page-play .life-panel,
+  #page-play .roulette-stage, #page-play .ttt-board {
+    touch-action:pan-y pinch-zoom !important;
+  }
+  /* Menús y categorías continúan con desplazamiento vertical natural. */
+  #page-hub, #page-more, #page-flash, #page-mobility,
+  #page-routes, #page-calendar, #page-savings, #page-binder {
+    touch-action:pan-y pinch-zoom !important;
+  }
+  /* Las pestañas horizontales conservan su propio gesto. */
+  .life-area-tabs, .life10-pins, .hub-switch, .chat-picker-tabs {
+    touch-action:auto !important;
+    -webkit-overflow-scrolling:touch;
+  }
+  /* En Cartas sí se mantiene el marco fijo y el swipe lateral. */
+  body.fer77-immersive-cards #cardGrid { touch-action:pan-x !important; }
+}
