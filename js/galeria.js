@@ -93,7 +93,7 @@
       hide(loginView);
       show(appView);
       await Promise.all([loadPhotos(true), loadNotes()]);
-      goPage('home');
+      goPage('cards');
       subscribeRealtime();
     } catch (err) {
       await sb.auth.signOut().catch(() => {});
@@ -193,7 +193,7 @@
   let isLoadingPage = false;
   let filteredPhotos = [];
   let page = 'home';
-  const sectionNames = ['home','cards','chat','savings','binder','notes','backup','calendar','music','videos','more','today','places','gifts','dreams','diary','studio'];
+  const sectionNames = ['flash','play','routes','mobility','hub','home','cards','chat','savings','binder','notes','backup','calendar','music','videos','more','today','places','gifts','dreams','diary','studio'];
 
   function goPage(name) {
     if (!sectionNames.includes(name)) name = 'home';
@@ -371,10 +371,15 @@
     });
   },{passive:true});
 
+  let chronologicalAsc=true;
+  const memoryDay = p => p.event_date || (p.created_at||'').slice(0,10) || '9999-12-31';
+  const compareMemories = (a,b) => { const d=memoryDay(a).localeCompare(memoryDay(b)) || (a.created_at||'').localeCompare(b.created_at||'') || a.id.localeCompare(b.id); return chronologicalAsc ? d : -d; };
+  $('cardOrder').addEventListener('change',e=>{chronologicalAsc=e.target.value==='asc';activeCard=0;offset=0;hasMore=false;loadPhotos(true).catch(console.warn);});
+
   function renderPhotos() {
     const track=$('cardGrid'),binder=$('collectionGrid');
     const beforeId=filteredPhotos[activeCard]?.id;
-    filteredPhotos=photos.filter(item=>currentFilter==='all'||(currentFilter==='mine'&&isMine(item))||(currentFilter==='theirs'&&!isMine(item)));
+    filteredPhotos=photos.filter(item=>currentFilter==='all'||(currentFilter==='mine'&&isMine(item))||(currentFilter==='theirs'&&!isMine(item))).sort(compareMemories);
     track.replaceChildren();binder.replaceChildren();
     if(!filteredPhotos.length){
       const empty=document.createElement('div');empty.className='empty-deck';
@@ -395,7 +400,7 @@
     activeCard=Math.max(0,filteredPhotos.findIndex(p=>p.id===beforeId));
     updatePager();
     if(beforeId) requestAnimationFrame(()=>scrollToCard(activeCard,false));
-    const first=photos[0];
+    const first=[...photos].sort(compareMemories).at(-1);
     $('featuredTitle').textContent=first?.title||'Aquí comienza nuestra historia';
     $('featuredSubtitle').textContent=first ? `${first.location||'Nuestro lugar'} · ${first.event_date?fmtDate(first.event_date):'Siempre nosotros'}` : 'Agrega la primera fotografía para llenar este espacio de recuerdos.';
     const featured=$('featuredImage');featured.querySelectorAll('img').forEach(img=>img.remove());
@@ -413,11 +418,12 @@
     }
     const { data, error } = await sb.from('couple_photos')
       .select('id,user_id,storage_path,title,bubble_text,back_note,location,event_date,reminder,created_at,original_author_name,backup_source_id')
-      .order('created_at', { ascending: false })
+      .order('chronological_at', { ascending: chronologicalAsc })
+      .order('created_at', { ascending: chronologicalAsc })
       .range(offset, offset + PAGE - 1);
     if (error) {
       isLoadingPage = false;
-      text(statusMsg, `No se pudieron cargar las cartas: ${friendly(error)}`);
+      text(statusMsg, /chronological_at/.test(String(error.message)) ? 'Falta ejecutar 10_hub_integracion.sql en Supabase para ordenar las cartas por fecha.' : `No se pudieron cargar las cartas: ${friendly(error)}`);
       return;
     }
     const rows = data || [];
@@ -1872,6 +1878,9 @@
         human.push(`VIDEO: ${row.title}`,`Fecha: ${row.event_date||'sin fecha'}`,`Lugar: ${row.location||''}`,`Nota: ${row.note||''}`,`Archivo: ${file}`,'');
       }
       if(window.FerV7Backup?.append)await window.FerV7Backup.append({manifest,zip,human,sb,members,activeUser,fetchAll});
+      if(window.FerHubBackup?.append)await window.FerHubBackup.append({manifest,human,fetchAll});
+      if(window.FerLifeOSBackup?.append)await window.FerLifeOSBackup.append({manifest,human,fetchAll});
+      if(window.FerConnectBackup?.append)await window.FerConnectBackup.append({manifest,human,fetchAll});
       zip.file('respaldo.json', JSON.stringify(manifest, null, 2));
       zip.file('NUESTROS_RECUERDOS.txt', human.join('\n'));
       zip.file('LEEME.txt', 'FER & ALXS — RESPALDO PRIVADO\n\nEste ZIP contiene fotografías y datos personales. No lo compartas públicamente.\n\nPara restaurarlo: entra a la web con una de las dos cuentas, abre Cápsula del tiempo, elige este ZIP y pulsa Restaurar recuerdos.\n\nEl archivo respaldo.json tiene el contenido estructurado. Puedes leer NUESTROS_RECUERDOS.txt aunque ya no tengas la web.\n\nLos archivos originales de la nube fueron optimizados al subirlos; esta copia conserva esas imágenes, no el original sin comprimir de la cámara.\n');
@@ -2152,6 +2161,8 @@
         }
       }
       if(data.version===5 && window.FerV7Backup?.restore)await window.FerV7Backup.restore({data,zip,sb,activeUser});
+      if(window.FerHubBackup?.restore)await window.FerHubBackup.restore({data,activeUser});
+      if(window.FerLifeOSBackup?.restore)await window.FerLifeOSBackup.restore({data,activeUser});
       await Promise.all([loadPhotos(true),loadNotes(),loadVideos(),loadSongs(),loadStickers(),loadFavoriteStickers(),loadSavings(),loadChat(true)]);
       text($('backupMessage'), `Restauración terminada: ${restoredPhotos} fotos, ${restoredVideos} videos, ${restoredSongs} canciones y ${restoredNotes} notas, ${restoredChat} mensajes, ${restoredStickers} stickers, ${restoredGoals} metas, ${restoredEntries} movimientos y ${restoredReactions} reacciones propias; ${skipped} ya existían.`, true);
 

@@ -1,0 +1,87 @@
+/* Life OS 10.0 — capa responsiva y navegación simplificada.
+   No cambia autenticación ni el almacenamiento privado. */
+:root{--l10-line:rgba(234,210,193,.16);--l10-card:#21151e;--l10-card2:#2b1a26;--l10-gold:#e3c9a0;--l10-ink:#fcf1ec}
+html body{overflow-x:hidden}
+html body .life10-more-root{display:block!important;margin-top:12px;width:100%;}
+.life10-more-header{background:linear-gradient(145deg,rgba(105,48,72,.28),rgba(28,16,26,.9));padding:23px 19px 18px;border:1px solid var(--l10-line);border-radius:24px;margin-bottom:15px}
+.life10-more-header h2{font-size:clamp(30px,7vw,39px)!important;line-height:1.05!important;margin:5px 0 8px!important}
+.life10-more-header>p{color:var(--cream2)!important;margin:0 0 17px;max-width:40ch;font-size:13px;line-height:1.55}
+.life10-eyebrow{color:var(--l10-gold);font-size:11px;letter-spacing:.13em;font-weight:800}
+.life10-tool-search,.life10-hub-find{display:flex;align-items:center;gap:10px;border:1px solid rgba(234,210,193,.23);border-radius:15px;background:rgba(10,7,11,.48);padding:4px 12px;min-width:0}
+.life10-tool-search>span,.life10-hub-find>span{color:var(--l10-gold);font-size:24px;line-height:1}
+html body .life10-tool-search input,html body .life10-hub-find input{background:transparent;border:0;box-shadow:none;min-width:0;min-height:43px;flex:1;padding:8px 0;font-size:14px;color:var(--l10-ink);outline:0}
+.life10-tool-search kbd{font:600 11px/1.2 var(--sans);border:1px solid var(--l10-line);border-radius:6px;padding:5px;color:var(--cream2);white-space:nowrap}
+.life10-pinned{padding:12px 0 6px}
+.life10-section-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:10px 3px 12px}
+html body .life10-section-title h3{font:600 19px/1.2 var(--sans);margin:0;color:var(--ink)}
+.life10-section-title>span{font-size:11px;color:var(--muted);text-align:right}
+.life10-pins{display:flex;gap:8px;overflow:auto;scrollbar-width:none;padding:0 1px 12px;scroll-snap-type:x mandatory}
+.life10-pins::-webkit-scrollbar{display:none}
+html body .life10-pinned-btn{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:min(42vw,184px);min-height:78px;padding:15px;border-radius:16px;border:1px solid rgba(222,190,151,.32);background:rgba(219,187,141,.08);text-align:left;color:var(--l10-ink);scroll-snap-align:start}
+.life10-pinned-btn strong{font:700 13px var(--sans)}.life10-pinned-btn small{color:var(--muted);font-size:11px}
+.life10-tool-categories{display:grid;gap:9px}
+.life10-group{padding:16px 13px 14px;border:1px solid var(--l10-line);background:rgba(34,21,31,.8);border-radius:22px}
+.life10-tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.life10-tool{position:relative;min-width:0}
+html body .life10-tool>.more-tile{min-width:0;min-height:108px;width:100%;height:100%;padding:15px 38px 15px 14px;gap:5px;border-radius:16px;border:1px solid rgba(234,210,193,.1);background:linear-gradient(155deg,rgba(255,255,255,.028),rgba(28,13,23,.35));box-shadow:none}
+.life10-tool>.more-tile strong{font:700 13px/1.25 var(--sans)!important;letter-spacing:-.01em}
+.life10-tool>.more-tile>span{font:400 11px/1.35 var(--sans)!important;color:var(--muted)}
+.life10-tool>.more-tile .ui-icon{width:21px;height:21px;color:var(--l10-gold)}
+html body .life10-pin{position:absolute;right:8px;top:8px;border:1px solid var(--l10-line);background:rgba(13,7,13,.6);color:var(--l10-gold);font-size:18px;line-height:1;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;touch-action:manipulation}
+.life10-tool[hidden],.life10-group[hidden],.life10-pinned[hidden]{display:none!important}
+.life10-settings{border:1px solid var(--l10-line);border-radius:22px;background:rgba(34,21,31,.8);padding:17px 15px;margin:13px 0 20px}
+.life10-settings>p{font-size:12px;line-height:1.6;color:var(--muted);margin:0 3px 12px}
+.life10-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+html body .life10-option{min-height:46px;background:var(--surface2);border:1px solid var(--l10-line);border-radius:12px;padding:9px;color:var(--ink);font-size:12px;font-weight:700;touch-action:manipulation}
+html body .life10-option[aria-pressed=true]{background:rgba(217,187,141,.14);border-color:rgba(217,187,141,.46);color:var(--gold)}
+.life10-empty{border:1px dashed var(--l10-line);padding:22px;text-align:center;color:var(--muted);border-radius:15px;font-size:13px}
+.life10-empty.hidden{display:none!important}
+/* Buscador de módulos, no de datos privados. */
+.life10-palette{position:fixed;z-index:850;inset:0;display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top) + 36px) 12px 20px}
+.life10-palette.hidden{display:none!important}
+.life10-palette-scrim{position:absolute;inset:0;border:0;background:rgba(4,2,5,.84);backdrop-filter:blur(13px)}
+.life10-palette-sheet{position:relative;display:flex;flex-direction:column;width:min(100%,540px);max-height:min(78dvh,780px);min-height:0;background:#1b111b;border:1px solid rgba(230,199,151,.26);border-radius:25px;box-shadow:0 28px 90px rgba(0,0,0,.55);padding:17px;overflow:hidden;color:var(--ink)}
+.life10-palette-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.life10-palette-head span{font:800 11px var(--sans);color:var(--gold);letter-spacing:.12em}.life10-palette-head button{width:38px;height:38px;border-radius:12px;border:1px solid var(--l10-line);background:var(--surface2);color:var(--ink);font-size:23px}
+html body #life10CommandInput{background:rgba(0,0,0,.22);height:49px;border-radius:12px;border:1px solid var(--l10-line);padding:12px 14px;flex:none}
+.life10-command-results{display:grid;overflow-y:auto;overscroll-behavior:contain;min-height:0;gap:7px;padding:12px 0 4px}
+html body .life10-command{display:flex;align-items:center;justify-content:space-between;gap:9px;width:100%;min-height:58px;padding:10px 14px;border-radius:13px;border:1px solid rgba(233,209,191,.11);background:rgba(255,255,255,.025);color:var(--ink);text-align:left}
+.life10-command>strong{font:700 13px var(--sans)}.life10-command>small{font-size:11px;color:var(--muted);text-align:right;max-width:45%}
+.life10-command-foot{color:var(--muted);font-size:10.5px;line-height:1.5;margin:10px 0 0}
+body.life10-modal-open{overflow:hidden!important}
+html body #life10Launcher{display:grid;place-items:center;width:43px;height:43px;min-width:43px;border-radius:14px;border:1px solid var(--gold-line);background:rgba(217,187,141,.1);color:var(--gold);box-shadow:none;margin-left:8px}
+#life10Launcher svg{width:20px;height:20px}
+.life10-cards-actions{display:flex;gap:7px;align-items:center;justify-content:center;margin:3px 0 9px}
+html body .life10-cards-actions button{border:1px solid rgba(231,201,164,.23);background:rgba(217,187,141,.07);color:var(--cream2);border-radius:99px;min-height:32px;padding:5px 12px;font:700 11px/1.1 var(--sans)}
+.life10-hub-find{margin:10px 0 15px}
+.life10-hub-no-results{padding:16px;color:var(--muted);font-size:13px;text-align:center}
+.hub-entry[hidden]{display:none!important}
+/* Vista discreta: ocultación visual, NO protección de datos */
+body.life10-privacy .chat-wall .chat-message,body.life10-privacy .memory-card img,body.life10-privacy .binder-art img,body.life10-privacy .featured-image img,body.life10-privacy .hub-entry,body.life10-privacy .life-flash-list,body.life10-privacy #page-diary .v7-card{filter:blur(16px) saturate(.15);pointer-events:none;user-select:none}
+body.life10-privacy .private-tag{border-color:var(--gold-line);color:var(--gold)}
+body.life10-compact .life10-tool>.more-tile{min-height:82px;padding:11px 37px 11px 12px}
+body.life10-compact .life10-group{padding:12px 9px}
+body.life10-compact #page-cards .memory-content{padding:11px}
+body.life10-photo #page-cards .page-heading,body.life10-photo #page-cards .filters,body.life10-photo #page-cards .deck-bar>label{display:none!important}
+body.life10-photo #page-cards .card-grid{margin-top:4px}
+/* Pequeñas pantallas: evitar cortes en mazo y chat */
+@media(max-width:719px){
+ html body .masthead{min-height:54px;height:54px}
+ html body .life10-cards-actions{margin:2px 0 5px}
+ body.fer77-immersive-cards #page-cards .page-heading{padding:5px 0 0}
+ body.fer77-immersive-cards #page-cards .page-heading h1{font-size:clamp(25px,7vw,32px);margin:0 0 6px}
+ body.fer77-immersive-cards #page-cards .deck-bar{margin:4px 2px 7px}
+ body.fer77-immersive-cards #page-cards .deck-bar select{max-width:158px;font-size:11px;padding:7px 8px}
+ body.fer77-immersive-cards #page-cards .card-grid{min-height:0!important}
+ html body .bottom-nav{padding-bottom:max(4px,env(safe-area-inset-bottom))}
+ body.fer77-immersive-chat #page-chat .chat-compose{padding-bottom:max(7px,env(safe-area-inset-bottom))}
+ html body #page-more{padding-bottom:45px}
+}
+@media(max-width:370px){.life10-tool-grid{gap:7px}.life10-tool>.more-tile{padding-left:10px!important}.life10-more-header{padding:16px 13px}.life10-tool-search kbd{display:none}.life10-options{grid-template-columns:1fr}}
+@media(min-width:720px){.life10-tool-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.life10-tool>.more-tile{min-height:112px}.life10-pinned-btn{width:185px}.life10-more-header{padding:28px}}
+@media(prefers-reduced-motion:reduce){html body .life10-palette,html body .life10-tool,html body .life10-command{animation:none!important;transition:none!important}}
+/* La pantalla Más ya trae un encabezado propio: evitar repetición de títulos. */
+html body #page-more>.page-heading{display:none!important}
+html body #appView[data-current-page="more"]>.app-topline{display:none!important}
+html body #page-more>.more-grid{margin-top:12px}
+.life10-command-label{font:800 10px/1.2 var(--sans);letter-spacing:.14em;color:var(--gold);margin:12px 4px 4px}
+html body .life10-quick-action{background:rgba(217,187,141,.07);border-color:rgba(217,187,141,.2)}

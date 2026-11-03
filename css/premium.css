@@ -1,0 +1,232 @@
+/* Fer & Alxs · Life OS 9.2 — capa premium.
+   Se carga al final: redefine tokens, tipografía y componentes sin tocar la lógica.
+   Paleta: obsidiana (fondo), ciruela oscura (superficies), champán (acento), hueso (texto), vino (acción). */
+:root{
+  --bg:#0e0910;--bgdeep:#0a060b;--surface:#1a1119;--surface2:#231721;--surface3:#2d1e2a;
+  --wine:#7d2543;--ruby:#a63a5c;--plum:#3a1c2f;
+  --gold:#d9bb8d;--gold-soft:rgba(217,187,141,.13);--gold-line:rgba(217,187,141,.28);
+  --ink:#f4ece6;--cream:#f4ece6;--cream2:#d8c5c3;--muted:#a58f98;
+  --line:rgba(236,214,196,.09);--line-strong:rgba(236,214,196,.18);
+  --serif:'Bodoni Moda','Didot','Bodoni 72',Georgia,serif;
+  --sans:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --life-border:var(--line-strong);--life-card:var(--surface);--life-text:var(--ink);--life-sub:var(--muted);
+  --r-lg:26px;--r-md:18px;--r-sm:12px;
+  --ease:cubic-bezier(.22,.8,.3,1);
+}
+
+/* ---------- Base ---------- */
+html body{
+  background:
+    radial-gradient(900px 520px at 85% -12%,rgba(125,37,67,.34),transparent 62%),
+    radial-gradient(700px 480px at -10% 105%,rgba(217,187,141,.07),transparent 60%),
+    var(--bgdeep);
+  background-attachment:fixed;
+  color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+html body h1,html body h2,html body h3{font-family:var(--serif);font-weight:500;letter-spacing:-.01em;color:var(--ink)}
+html body h1 em,html body h2 em,html body .home-hero h1 em{font-style:normal;color:inherit}
+html body .eyebrow,html body .home-kicker,html body .life-small-label,
+html body .hub-home-head small,html body .featured-content small,html body .hub-sheet header small{
+  text-transform:none;letter-spacing:.01em;font:600 12.5px/1.3 var(--sans);color:var(--gold);
+}
+html body p,html body .muted,html body .status-line{color:var(--muted)}
+html body ::selection{background:var(--gold);color:#1a0d14}
+html body :focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:8px}
+html body .ambient,html body .orbit-decor,html body .v71-orbit,html body .v71-heart,html body .tiny-star{display:none!important}
+
+/* ---------- Encabezado ---------- */
+html body .masthead{
+  height:56px;background:rgba(14,9,16,.72);-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);
+  border-bottom:1px solid var(--line);box-shadow:none;
+}
+html body .brand-gem{background:transparent;border:1px solid var(--gold-line);color:var(--gold);width:32px;height:32px;box-shadow:none}
+html body .brand strong{font:600 17px var(--serif);letter-spacing:.01em;text-transform:none;color:var(--ink)}
+html body .brand strong span{color:var(--gold)}
+html body .brand small{font:500 10.5px var(--sans);letter-spacing:.02em;text-transform:none;color:var(--muted)}
+html body .private-tag{font:600 11px var(--sans);letter-spacing:.02em;text-transform:none;color:var(--muted);border:1px solid var(--line);background:transparent;border-radius:99px;padding:5px 10px}
+html body .privacy-dot{background:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+
+html body #appView{padding:0 16px 132px;max-width:1040px}
+html body .app-topline{padding:22px 4px 10px}
+html body .welcome{font:500 24px var(--serif);color:var(--ink)}
+html body .icon-btn,html body .v7-bell{
+  width:40px;height:40px;border-radius:14px;background:var(--surface);border:1px solid var(--line);color:var(--cream2);box-shadow:none;transition:background .2s,border-color .2s;
+}
+html body .icon-btn:hover{background:var(--surface2);border-color:var(--gold-line)}
+
+/* ---------- Botones ---------- */
+html body .btn-primary,html body .hero-button,html body .life-flash-hero button,html body .life-form button[type=submit]{
+  background:var(--gold);color:#22121b;border:0;border-radius:14px;font:700 14px var(--sans);letter-spacing:0;padding:14px 20px;box-shadow:none;
+  transition:transform .18s var(--ease),filter .18s;
+}
+html body .btn-primary:hover,html body .hero-button:hover{filter:brightness(1.06)}
+html body .btn-primary:active,html body .hero-button:active{transform:scale(.98)}
+html body .btn-secondary,html body .btn-compact,html body .small-btn,html body .text-link{
+  background:transparent;color:var(--ink);border:1px solid var(--line-strong);border-radius:12px;font:600 13px var(--sans);box-shadow:none;
+}
+html body .text-link{border:0;color:var(--gold);padding:6px 2px}
+html body .btn-secondary:hover,html body .small-btn:hover{border-color:var(--gold-line);background:var(--gold-soft)}
+
+/* ---------- Formularios ---------- */
+html body input,html body select,html body textarea{
+  background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);border-radius:var(--r-sm);font-family:var(--sans);
+  transition:border-color .18s,box-shadow .18s;
+}
+html body input::placeholder,html body textarea::placeholder{color:#7d6a75}
+html body input:focus,html body select:focus,html body textarea:focus{outline:0;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+html body label{color:var(--cream2);font-weight:500}
+
+/* ---------- Superficies ---------- */
+html body .content-panel,html body .life-panel,html body .hub-home-card,html body .hub-focus,
+html body .hub-entry,html body .hub-menu-group,html body .v7-card,html body .savings-hero,
+html body .connect-form,html body .connect-stack>*,html body .note-preview,html body .music-player,
+html body .soundtrack-panel,html body .video-panel,html body .pdf-box{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:none;
+}
+html body .content-panel h2,html body .life-panel h2{font:500 24px var(--serif);color:var(--ink)}
+html body .hub-kpis>div,html body .connect-kpis>*{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:none}
+html body .hub-kpis strong{font:500 28px var(--serif);color:var(--gold)}
+html body .hub-kpis span{color:var(--muted);text-transform:none;letter-spacing:0;font-size:12px}
+html body .hub-focus{background:linear-gradient(150deg,var(--surface2),var(--surface));border-color:var(--gold-line)}
+html body .hub-entry{padding:16px 16px 16px 20px}
+html body .hub-entry-meta span{background:var(--gold-soft);color:var(--gold);border-radius:99px}
+
+/* ---------- Inicio ---------- */
+html body .home-hero{
+  background:
+    radial-gradient(520px 260px at 100% 0,rgba(217,187,141,.14),transparent 70%),
+    linear-gradient(160deg,#2a1426 0%,#170d16 70%);
+  border:1px solid var(--gold-line);border-radius:var(--r-lg);box-shadow:none;padding:34px 26px 30px;min-height:0;
+}
+html body .home-hero h1{font:500 clamp(34px,8.5vw,56px)/1.06 var(--serif);letter-spacing:-.02em;max-width:13ch;margin:10px 0 14px}
+html body .home-hero p{color:var(--cream2);max-width:34ch;font-size:15px;line-height:1.65}
+html body .home-hero .hero-button{margin-top:22px}
+html body .section-kicker-row h2{font:500 22px var(--serif)}
+html body .featured-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:none;
+  transition:border-color .25s,transform .25s var(--ease);
+}
+html body .featured-card:hover{border-color:var(--gold-line)}
+html body .featured-image{border-radius:0}
+html body .featured-content strong{font:500 24px/1.2 var(--serif);color:var(--ink)}
+html body .featured-content>span{color:var(--muted)}
+html body .featured-cta{color:var(--gold);font-weight:600}
+html body .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+html body .quick-tile,html body .more-tile{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:none;text-align:left;
+  display:grid;gap:3px;align-content:start;padding:16px;color:var(--ink);transition:border-color .2s,background .2s,transform .2s var(--ease);
+}
+html body .quick-tile:hover,html body .more-tile:hover{border-color:var(--gold-line);background:var(--surface2)}
+html body .quick-tile:active,html body .more-tile:active{transform:scale(.985)}
+html body .quick-tile strong,html body .more-tile strong{font:600 15px var(--sans);color:var(--ink)}
+html body .quick-tile small,html body .more-tile span{font:400 12.5px/1.45 var(--sans);color:var(--muted)}
+html body .tile-icon{background:var(--gold-soft);color:var(--gold);border:0;border-radius:12px;width:38px;height:38px;margin-bottom:8px}
+html body .more-tile .ui-icon{color:var(--gold)}
+html body .v71-home-tools{gap:8px;margin:2px 0 16px}
+html body .v71-home-tools button{background:transparent;border:1px solid var(--line-strong);color:var(--cream2);border-radius:99px;font:600 13px var(--sans);box-shadow:none}
+html body .hub-home-card{padding:20px;margin:16px 0}
+html body .hub-home-head h2{font:500 24px var(--serif)}
+html body .hub-home-head button{background:transparent;color:var(--gold);border:1px solid var(--gold-line);border-radius:99px;padding:8px 16px;font:600 13px var(--sans)}
+html body .hub-home-cards button{background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--ink)}
+html body .note-preview{padding:18px;display:flex;gap:12px;align-items:flex-start}
+@media(min-width:720px){
+  html body .quick-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  html body .home-hero{padding:54px 52px 48px}
+}
+
+/* ---------- Encabezados de página ---------- */
+html body .page-heading{text-align:left;padding:26px 4px 14px}
+html body .page-heading h1,html body .life-heading h1,html body .hub-topline h1,html body .connect-heading h1{
+  font:500 clamp(34px,8vw,52px)/1.08 var(--serif);letter-spacing:-.02em;color:var(--ink);margin:8px 0 10px;
+}
+html body .page-heading p:last-child,html body .life-heading p,html body .hub-topline p{color:var(--muted);margin-left:0;margin-right:0;max-width:52ch;font-size:14px;line-height:1.65}
+
+/* ---------- Pestañas, filtros y selectores en píldora ---------- */
+html body .hub-switch,html body .filters,html body #filters,html body .chat-picker-tabs{gap:6px}
+html body .hub-switch button,html body .life-area-tabs button,html body #filters button,html body .filters button,html body .chat-picker-tabs button{
+  background:transparent;color:var(--muted);border:1px solid var(--line-strong);border-radius:99px;font:600 13px var(--sans);padding:9px 16px;box-shadow:none;
+  transition:background .2s,color .2s,border-color .2s;
+}
+html body .hub-switch button.active,html body .life-area-tabs button.selected,html body #filters button.active,html body .filters button.active,html body .chat-picker-tabs button.active{
+  background:var(--gold);color:#22121b;border-color:var(--gold);
+}
+
+/* ---------- Dock de navegación ---------- */
+html body .bottom-nav{
+  left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;
+  padding:7px;gap:2px;border:1px solid var(--line-strong);border-radius:28px;
+  background:rgba(22,14,22,.82);-webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);
+  box-shadow:0 18px 40px rgba(0,0,0,.5);
+}
+html body .bottom-nav button{
+  flex:1;display:grid;justify-items:center;gap:3px;padding:9px 4px 7px;border:0;border-radius:21px;background:transparent;color:var(--muted);
+  transition:background .25s var(--ease),color .25s;
+}
+html body .bottom-nav button small{font:600 11px var(--sans);letter-spacing:0;text-transform:none}
+html body .bottom-nav button.active{background:var(--gold-soft);color:var(--gold);border:0;box-shadow:inset 0 0 0 1px var(--gold-line)}
+html body .bottom-nav .ui-icon{width:22px;height:22px}
+
+/* ---------- Menú Más (grupos) ---------- */
+html body .hub-menu-group{margin:10px 0;background:var(--surface)}
+html body .hub-menu-group>summary{font:600 15px var(--sans);color:var(--ink);padding:18px 18px;min-height:0}
+html body .hub-menu-group>summary:after{color:var(--gold)}
+html body .hub-menu-grid{padding:0 12px 12px;gap:10px}
+html body .hub-menu-grid>.more-tile{border-radius:14px;min-height:96px;background:var(--surface2)}
+
+/* ---------- Chat ---------- */
+html body .chat-message.from-me .bubble,html body .chat-message.from-me .chat-bubble{background:linear-gradient(160deg,var(--ruby),var(--wine));color:#fff;border:0;border-radius:20px 20px 6px 20px;box-shadow:none}
+html body .chat-message.from-them .bubble,html body .chat-message.from-them .chat-bubble{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:20px 20px 20px 6px;box-shadow:none}
+html body #page-chat .chat-compose{background:rgba(18,11,18,.92);border-top:1px solid var(--line)}
+html body .chat-send{background:var(--gold);color:#22121b;border:0}
+
+/* ---------- Cartas (mazo) ---------- */
+html body #page-cards .page-heading h1{font:500 clamp(30px,7vw,44px) var(--serif)}
+html body .memory-card{border-radius:var(--r-lg)}
+html body .memory-side{border:1px solid var(--gold-line);background:linear-gradient(165deg,#2a1626,#150c14)}
+html body .circle-arrow{background:var(--surface);border:1px solid var(--line-strong);color:var(--gold)}
+html body .dots span.active,html body .dots .active{background:var(--gold)}
+
+/* ---------- Hojas, diálogos y overlays ---------- */
+html body .sheet,html body .hub-sheet,html body .fer77-action-sheet,html body .chat-picker,html body .v71-dialog-panel,html body .surprise-panel,html body .sticker-message-sheet{
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:28px 28px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.55);color:var(--ink);
+}
+html body .v71-dialog-panel,html body .surprise-panel{border-radius:var(--r-lg)}
+html body .sheet-scrim,html body .hub-overlay-bg,html body .v71-backdrop,html body .fer77-action-scrim{background:rgba(6,3,7,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html body .v71-result{background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-sm)}
+html body .v71-result:hover{border-color:var(--gold-line)}
+
+/* ---------- Ocio, notas 24 h ---------- */
+html body .life-flash-hero{background:linear-gradient(150deg,var(--surface3),var(--surface));border:1px solid var(--gold-line);border-radius:var(--r-lg)}
+html body .life-flash-hero span{color:var(--gold);letter-spacing:0;text-transform:none;font-size:12.5px;font-weight:600}
+html body .life-flash-hero strong{font:500 24px var(--serif)}
+html body .life-note{border-radius:var(--r-md);border:1px solid var(--line-strong);box-shadow:none}
+html body .ttt-board button{background:var(--surface2);border:1px solid var(--line-strong);border-radius:14px;color:var(--ink);font:500 34px var(--serif)}
+html body .ttt-board button.win{background:var(--gold);color:#22121b}
+
+/* ---------- Acceso ---------- */
+html body .login-view{padding-top:12px}
+html body .login-content h1{font:500 clamp(36px,9vw,56px)/1.06 var(--serif);letter-spacing:-.02em}
+html body .portal-ring{background:transparent;border:1px solid var(--gold-line);box-shadow:0 0 0 14px rgba(217,187,141,.04),0 0 0 30px rgba(217,187,141,.025)}
+html body .portal-heart,html body .romantic-heart{color:var(--gold);filter:none}
+html body .login-form{gap:14px}
+html body .login-foot{color:var(--muted);font-size:12px}
+
+/* ---------- Avisos y toasts ---------- */
+html body .system-warning,html body .toast-status{background:var(--surface3);border:1px solid var(--gold-line);color:var(--ink);border-radius:var(--r-sm)}
+
+/* ---------- Movimiento: una sola entrada por página, respeta preferencia ---------- */
+@keyframes premiumPage{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+html body .page.active{animation:premiumPage .38s var(--ease) both}
+@media(prefers-reduced-motion:reduce){html body .page.active{animation:none}}
+
+/* ---------- Escritorio ---------- */
+@media(min-width:900px){
+  html body #appView{padding:0 32px 140px}
+  html body .more-grid .hub-menu-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:380px){
+  html body .quick-grid{gap:8px}
+  html body .quick-tile{padding:13px}
+  html body .home-hero{padding:26px 20px}
+}
