@@ -6,15 +6,15 @@
 <meta name="color-scheme" content="dark"><meta name="robots" content="noindex,nofollow">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Fer & Alxs"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta property="og:title" content="Fer & Alxs · Nuestro universo"><meta property="og:description" content="Un espacio privado para dos."><meta property="og:type" content="website">
-<title>Fer & Alxs · Nuestro universo · Life OS 9.2</title>
+<title>Fer & Alxs · Life OS 10.2</title>
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/icon-192.png"><link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;1,6..96,500&family=Manrope:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="css/galeria.css?v=100"><link rel="stylesheet" href="css/mejoras.css?v=100"><link rel="stylesheet" href="css/vc.css?v=100"><link rel="stylesheet" href="css/experiencia77.css?v=100"><link rel="stylesheet" href="css/experiencia78.css?v=100">
-<link rel="stylesheet" href="css/hub.css?v=100"><link rel="stylesheet" href="css/connect.css?v=100"><link rel="stylesheet" href="css/lifeos.css?v=100"><link rel="stylesheet" href="css/premium.css?v=100"><script defer src="config.js?v=100"></script><script defer src="js/giphy-public.js?v=100"></script>
-<link rel="stylesheet" href="css/lifeos10.css?v=100">
+<link rel="stylesheet" href="css/galeria.css?v=102"><link rel="stylesheet" href="css/mejoras.css?v=102"><link rel="stylesheet" href="css/vc.css?v=102"><link rel="stylesheet" href="css/experiencia77.css?v=102"><link rel="stylesheet" href="css/experiencia78.css?v=102">
+<link rel="stylesheet" href="css/hub.css?v=102"><link rel="stylesheet" href="css/connect.css?v=102"><link rel="stylesheet" href="css/lifeos.css?v=102"><link rel="stylesheet" href="css/premium.css?v=102"><script defer src="config.js?v=102"></script><script defer src="js/giphy-public.js?v=102"></script>
+<link rel="stylesheet" href="css/lifeos10.css?v=102"><link rel="stylesheet" href="css/album-fix-101.css?v=102"><link rel="stylesheet" href="css/album-v10-2.css?v=102">
 <script defer src="vendor/jszip.min.js"></script>
-<script defer src="js/pdf-native.js?v=100"></script>
+<script defer src="js/pdf-native.js?v=102"></script>
 <script>
 // Carga controlada: la aplicación se inicia solo después de tener la librería.
 // Si ambos CDN fallan, el usuario ve un diagnóstico explícito.
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
   ];
   function startApp(){
     const chain=['js/galeria.js','js/universo.js','js/mejoras.js','js/vc.js','js/hub.js','js/connect.js','js/lifeos.js','js/premium.js','js/lifeos10.js'];
-    (function next(i){ if(i>=chain.length)return; const sc=document.createElement('script'); sc.src=chain[i]+'?v=100'; sc.onload=function(){next(i+1)}; sc.onerror=function(){ if(i===0){ var w=document.getElementById('cloudWarning'); if(w){w.textContent='No se pudo cargar la aplicación. Revisa tu conexión y recarga.';w.classList.remove('hidden');} } else next(i+1); }; document.body.appendChild(sc); })(0);
+    (function next(i){ if(i>=chain.length)return; const sc=document.createElement('script'); sc.src=chain[i]+'?v=102'; sc.onload=function(){next(i+1)}; sc.onerror=function(){ if(i===0){ var w=document.getElementById('cloudWarning'); if(w){w.textContent='No se pudo cargar la aplicación. Revisa tu conexión y recarga.';w.classList.remove('hidden');} } else next(i+1); }; document.body.appendChild(sc); })(0);
   }
   function load(index){
     if(window.supabase){startApp();return;} if(index>=urls.length){ const w=document.getElementById('cloudWarning'); if(w){w.textContent='No se pudo cargar la librería de Supabase. Comprueba la conexión e inténtalo otra vez.';w.classList.remove('hidden');} return; }
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </section>
 
     <section class="page" data-page="cards" id="page-cards">
-      <div class="page-heading"><p class="eyebrow">El mazo de recuerdos</p><h1>Un momento<br><em>a la vez.</em></h1><p>Desliza a los lados para recorrer las cartas. Toca una para girarla. La pantalla permanece fija para recorrerlas sin subir y bajar.</p></div>
+      <div class="page-heading"><p class="eyebrow">El mazo de recuerdos</p><h1>Un momento <em>a la vez.</em></h1><p>Desliza para cambiar de recuerdo. Toca la carta para leer su reverso.</p></div>
       <div class="deck-bar"><span id="countText">Cargando colección…</span><label class="chrono-choice">Orden <select id="cardOrder" aria-label="Orden cronológico de cartas"><option value="asc">Antiguas → nuevas</option><option value="desc">Nuevas → antiguas</option></select></label><button type="button" id="cardsAdd" class="fer77-cards-add" aria-label="Agregar una carta">＋ Crear</button></div>
       <div id="cardGrid" class="card-grid" aria-live="polite"></div>
       <div class="carousel-bottom"><button type="button" id="prevCard" class="circle-arrow" aria-label="Carta anterior">←</button><div><span id="activeCardNum">0</span><span class="pagination-divider"> / </span><span id="photoCount">0</span><div class="dots" id="cardDots"></div></div><button type="button" id="nextCard" class="circle-arrow" aria-label="Siguiente carta">→</button></div>

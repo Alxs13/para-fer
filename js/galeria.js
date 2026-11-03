@@ -293,7 +293,7 @@
     const card = document.createElement('article');
     card.className = 'memory-card';
     card.tabIndex = 0;
-    card.setAttribute('aria-label',`Carta ${title}. Toca para girar.`);
+    card.setAttribute('aria-label',`Carta ${title}. Toca para girar; desliza para pasar a otra.`);
     card.innerHTML = `
       <div class="memory-card-inner">
         <div class="memory-side memory-front">
@@ -302,7 +302,7 @@
             <div class="memory-topbar"><span class="author-pill">✦ ${escapeHtml(authorName(item))}</span><span class="date-pill">Nº ${String(filteredPhotos.indexOf(item) + 1).padStart(3,'0')}</span></div>
           </div>
           <div class="memory-content"><h4 class="memory-title">${escapeHtml(title)}</h4><p class="memory-snippet">${escapeHtml(when)} · ${escapeHtml(where)}</p>
-            <div class="card-actions"><button type="button" class="small-btn" data-action="flip">↻ Girar carta</button><button type="button" class="small-btn" data-action="zoom">Ampliar foto</button>${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete">Eliminar</button>' : ''}</div>
+            <div class="card-actions"><button type="button" class="small-btn" data-action="zoom" aria-label="Ampliar fotografía">Ampliar foto ↗</button>${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete" aria-label="Eliminar esta fotografía">Eliminar</button>' : ''}</div>
           </div>
         </div>
         <div class="memory-side memory-back"><div class="back-body"><h4>${escapeHtml(title)}</h4><div class="meta-list">
@@ -311,19 +311,18 @@
           ${dedication ? `<div class="meta-item fer78-dedication"><b>Dedicatoria</b><span>${escapeHtml(dedication)}</span></div>` : ''}
           <div class="meta-item"><b>Nuestra historia</b><span>${escapeHtml(note)}</span></div>
           <div class="meta-item"><b>Para no olvidar</b><span>${escapeHtml(reminder)}</span></div>
-          </div><div class="back-footer"><button type="button" class="small-btn" data-action="flip">↻ Volver</button><button type="button" class="small-btn" data-action="zoom">Foto</button>${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete">Eliminar</button>' : ''}</div></div></div>
+          </div><div class="back-footer"><button type="button" class="small-btn" data-action="zoom">Ver foto ↗</button>${isMine(item) ? '<button type="button" class="small-btn danger" data-action="delete">Eliminar</button>' : ''}</div></div></div>
       </div>`;
     let pointerX=0;
     card.addEventListener('pointerdown',e=>{pointerX=e.clientX;},{passive:true});
     card.addEventListener('click',e=>{
-      if(e.target.closest('button')) return;
-      if(Math.abs(e.clientX-pointerX)>10) return;
+      if(e.target.closest('button,a,input,textarea,select')) return;
+      if(Math.abs((e.clientX||0)-pointerX)>10) return;
       animateFlip(card);
     });
     card.addEventListener('keydown',e=>{
       if(e.target===card && (e.key==='Enter'||e.key===' ')) {e.preventDefault();animateFlip(card);}
     });
-    card.querySelectorAll('[data-action="flip"]').forEach(btn=>btn.addEventListener('click',()=>card.classList.toggle('is-flipped')));
     card.querySelectorAll('[data-action="zoom"]').forEach(btn=>btn.addEventListener('click',()=>lightbox(item)));
     card.querySelectorAll('[data-action="delete"]').forEach(btn=>btn.addEventListener('click',()=>removePhoto(item)));
     return card;
@@ -337,7 +336,7 @@
     if(card) {
       const track=$('cardGrid');
       const left=card.offsetLeft-track.offsetLeft-(track.clientWidth-card.offsetWidth)/2;
-      track.scrollTo({left:Math.max(0,left),behavior:animate?'smooth':'instant'});
+      track.scrollTo({left:Math.max(0,left),behavior:animate?'smooth':'auto'});
     }
     updatePager();
   }
@@ -399,7 +398,7 @@
     hasMore?show($('binderLoadMore')):hide($('binderLoadMore'));
     activeCard=Math.max(0,filteredPhotos.findIndex(p=>p.id===beforeId));
     updatePager();
-    if(beforeId) requestAnimationFrame(()=>scrollToCard(activeCard,false));
+    requestAnimationFrame(()=>scrollToCard(activeCard,false));
     const first=[...photos].sort(compareMemories).at(-1);
     $('featuredTitle').textContent=first?.title||'Aquí comienza nuestra historia';
     $('featuredSubtitle').textContent=first ? `${first.location||'Nuestro lugar'} · ${first.event_date?fmtDate(first.event_date):'Siempre nosotros'}` : 'Agrega la primera fotografía para llenar este espacio de recuerdos.';
@@ -416,16 +415,35 @@
       photos = [];
       $('cardGrid').innerHTML = '<div class="empty-state panel"><p>Cargando recuerdos…</p></div>';
     }
-    const { data, error } = await sb.from('couple_photos')
-      .select('id,user_id,storage_path,title,bubble_text,back_note,location,event_date,reminder,created_at,original_author_name,backup_source_id')
+    const fields='id,user_id,storage_path,title,bubble_text,back_note,location,event_date,reminder,created_at,original_author_name,backup_source_id';
+    // Compatibilidad: la columna chronological_at se agrega en SQL 10.
+    // No impedir ver las fotos si esa migración aún no está instalada.
+    let result=await sb.from('couple_photos').select(fields)
       .order('chronological_at', { ascending: chronologicalAsc })
       .order('created_at', { ascending: chronologicalAsc })
       .range(offset, offset + PAGE - 1);
+    let basicOrder=false;
+    if(result.error && /chronological_at/i.test(String(result.error.message||''))){
+      basicOrder=true;
+      result=await sb.from('couple_photos').select(fields)
+        .order('event_date',{ascending:chronologicalAsc,nullsFirst:false})
+        .order('created_at',{ascending:chronologicalAsc})
+        .range(offset,offset+PAGE-1);
+    }
+    const {data,error}=result;
     if (error) {
       isLoadingPage = false;
-      text(statusMsg, /chronological_at/.test(String(error.message)) ? 'Falta ejecutar 10_hub_integracion.sql en Supabase para ordenar las cartas por fecha.' : `No se pudieron cargar las cartas: ${friendly(error)}`);
+      text(statusMsg, `No se pudieron cargar las cartas: ${friendly(error)}`);
+      const place=$('cardGrid');
+      place.innerHTML='';
+      const alert=document.createElement('div');alert.className='fer101-load-error';
+      const msg=document.createElement('p');msg.textContent='No fue posible consultar el álbum. Las fotos siguen guardadas en Supabase.';
+      const retry=document.createElement('button');retry.type='button';retry.textContent='Volver a intentar';
+      retry.addEventListener('click',()=>loadPhotos(true).catch(console.warn));
+      alert.append(msg,retry);place.append(alert);
       return;
     }
+    if(basicOrder)text(statusMsg,'Orden básico activado. Ejecuta 10_hub_integracion.sql para ordenar también recuerdos sin fecha.');
     const rows = data || [];
     let signed = [];
     if (rows.length) {

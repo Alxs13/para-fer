@@ -1,0 +1,37 @@
+/* Fer & Alxs 10.1 — corrección focalizada del álbum móvil. */
+*{box-sizing:border-box}
+html,body{width:100%;max-width:100%;overflow-x:clip}
+.app-shell,#appView,.page{min-width:0;max-width:100%}
+#page-cards{width:100%;max-width:100%;min-width:0}
+#page-cards .page-heading{max-width:100%;min-width:0}
+#page-cards .deck-bar{box-sizing:border-box;width:100%;max-width:100%;margin-left:0!important;margin-right:0!important;min-width:0;display:grid!important;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;row-gap:8px;padding:0 4px;align-items:center;justify-content:stretch}
+#page-cards #countText{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+#page-cards .chrono-choice{margin:0!important;justify-self:end;display:flex;align-items:center;gap:6px;max-width:100%;min-width:0;font-size:11px}
+#page-cards .chrono-choice select{width:min(142px,38vw);max-width:100%!important;min-width:0;min-height:36px;white-space:nowrap;text-overflow:ellipsis;border-radius:13px;padding:6px 5px;font-size:11px}
+#page-cards .fer77-cards-add{grid-column:1/-1;justify-self:stretch;max-width:100%;min-height:36px;font-size:12px;padding:6px 12px}
+#page-cards .life10-cards-actions{min-width:0;max-width:100%;overflow-x:auto;display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;margin:2px 0 4px;padding:0 2px;scrollbar-width:none}
+#page-cards .life10-cards-actions button{max-width:48%;min-width:0;flex:0 1 auto;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+#page-cards #cardGrid{min-width:0;width:100%;max-width:100%;scroll-padding-inline:calc((100% - min(322px,78vw))/2);padding-left:max(0px,calc((100% - min(322px,78vw))/2));padding-right:max(0px,calc((100% - min(322px,78vw))/2));overscroll-behavior-x:contain}
+#page-cards .memory-card{max-width:calc(100vw - 42px);flex-shrink:0}
+#page-cards #filters{min-width:0;max-width:100%;overflow-x:auto;flex-wrap:nowrap;gap:6px;scrollbar-width:none;padding:0 2px}
+#page-cards #filters button{white-space:nowrap;flex-shrink:0}
+#page-cards .carousel-bottom{width:100%;max-width:100%;gap:16px}
+#page-cards .fer101-load-error{flex:0 0 min(320px,86vw);padding:25px 19px;border:1px solid #bd788a;border-radius:18px;background:#371425;align-self:center;text-align:center;scroll-snap-align:center;color:#ffe5e4;font-size:13px}
+#page-cards .fer101-load-error button{margin-top:10px;min-height:42px;border:1px solid #f0aebf;border-radius:13px;background:#99435e;color:#fff;padding:8px 15px}
+@media(max-width:719px){
+ body.fer77-immersive-cards #page-cards.page.active{height:calc(100dvh - 54px - 72px - env(safe-area-inset-bottom));padding:0 5px 3px;overflow:hidden}
+ body.fer77-immersive-cards #page-cards .page-heading{padding:3px 0 0}
+ body.fer77-immersive-cards #page-cards .page-heading h1{font-size:clamp(20px,6vw,28px)!important;margin:0 0 4px!important;line-height:1.06}
+ body.fer77-immersive-cards #page-cards .deck-bar{margin:0 0 5px!important}
+ body.fer77-immersive-cards #page-cards .memory-card{width:auto;max-width:min(322px,calc(100vw - 48px))}
+ body.fer77-immersive-cards #page-cards #cardGrid{padding-top:7px;padding-bottom:7px;scroll-padding-inline:calc((100% - min(322px,78vw))/2)}
+ body.fer77-immersive-cards #page-cards .carousel-bottom{flex-basis:37px;min-height:37px;margin:2px auto 0}
+ body.fer77-immersive-cards #page-cards #filters{margin:2px 0 5px}
+ body.fer77-immersive-cards #page-cards .circle-arrow{width:33px;height:33px}
+}
+@media(max-height:680px) and (max-width:719px){
+ body.fer77-immersive-cards #page-cards .page-heading .eyebrow{display:none}
+ body.fer77-immersive-cards #page-cards .page-heading h1{font-size:19px!important}
+ body.fer77-immersive-cards #page-cards .deck-bar{row-gap:3px}
+ body.fer77-immersive-cards #page-cards .fer77-cards-add{min-height:29px}
+}
