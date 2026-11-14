@@ -1,0 +1,142 @@
+/* Fer & Alxs Life OS 10.6 - responsive sin pérdida de módulos.
+   Breakpoints: móvil <720, tablet 720-1099, escritorio >=1100.
+   El contenido privado nunca se almacena en la hoja de estilo. */
+:root { --fer106-dock: 76px; --fer106-content-max: 1280px; }
+*,*::before,*::after { box-sizing: border-box; }
+html { width:100%; max-width:100%; overflow-x:clip; }
+body { width:100%; max-width:100%; min-width:0; }
+body, #main, #appView, .page, .content-panel, .life-panel { min-width:0; }
+img, video, svg, canvas { max-width:100%; }
+input, select, textarea, button { min-width:0; }
+input, select, textarea { max-width:100%; }
+.page-heading h1, .life-heading h1, .connect-heading h1,
+.hub-topline h1 { overflow-wrap:break-word; }
+/* Los módulos pueden tener muchos campos sin producir scroll horizontal de la página. */
+#page-hub, #page-play, #page-more, #page-routes, #page-mobility,
+#page-savings, #page-calendar, #page-music, #page-videos,
+#page-diary, #page-places, #page-dreams, #page-gifts { max-width:100%; min-width:0; }
+.life10-tool-grid, .hub-menu-grid, .more-grid, .savings-goals,
+.binder-grid { min-width:0; }
+.chat-shell, .chat-picker, .gif-result-grid { max-width:100%; min-width:0; }
+.chat-compose textarea { min-width:0; }
+/* Scrollbars nativos y táctiles siguen disponibles junto a la barra asistida. */
+#page-chat .chat-wall, .sheet-content, .life10-command-results,
+#page-cards .meta-list { -webkit-overflow-scrolling:touch; }
+button, a, [role="button"] { -webkit-tap-highlight-color:transparent; }
+:where(button,a,input,textarea,select,[tabindex]):focus-visible {
+  outline:2px solid #f4d5ad;outline-offset:3px;
+}
+/* MÓVIL: una carta, barra baja, navegación siempre visible. */
+@media (max-width:719px) {
+  :root { --fer106-dock:calc(74px + env(safe-area-inset-bottom)); }
+  html body .app-shell { width:100%!important; max-width:100%!important; }
+  html body #appView { width:100%;max-width:100%;padding-left:0!important;padding-right:0!important; }
+  html body .masthead { padding-inline:max(12px,env(safe-area-inset-left)) max(12px,env(safe-area-inset-right)); }
+  .page.active:not(#page-cards):not(#page-chat) { padding-inline:clamp(11px,3.2vw,20px); }
+  body:has(.edge-scroll-rail:not([hidden])) .page.active:not(#page-cards):not(#page-chat) {padding-right:clamp(43px,9vw,49px)!important;}
+  body:has(.edge-scroll-rail:not([hidden])) #page-chat .chat-wall {padding-right:39px!important;}
+  .page.active:not(#page-cards):not(#page-chat) .page-heading { padding-inline:0; }
+  #page-chat .chat-shell { width:100%!important;max-width:100%!important; }
+  #page-chat .chat-wall { touch-action:pan-y!important; }
+  #page-cards #cardGrid {touch-action:pan-x!important;}
+  html body .bottom-nav { max-width:min(520px,calc(100vw - 16px));left:8px;right:8px;bottom:calc(6px + env(safe-area-inset-bottom)); }
+  html body .bottom-nav button {min-height:49px;}
+  .life10-tool-grid,.hub-menu-grid {grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .life10-tool>.more-tile,.hub-menu-grid>.more-tile {min-width:0;overflow-wrap:anywhere;}
+  .life-area-tabs,.life10-pins,.chat-picker-tabs {max-width:100%;overflow-x:auto;}
+  .sheet-content,.hub-sheet,.fer77-action-sheet {overscroll-behavior:contain;}
+  .two-cols,.connect-two,.hub-duo {grid-template-columns:1fr!important;}
+  #page-chat .chat-picker { max-height:min(52dvh,480px)!important; }
+}
+/* MÓVIL PEQUEÑO: mantener controles cómodos sin reducir texto a ilegible. */
+@media (max-width:359px) {
+  .brand small {letter-spacing:.12em;}
+  .private-tag {font-size:8px;}
+  #page-cards .chrono-choice select {width:31vw!important;}
+  .life10-options {grid-template-columns:1fr!important;}
+  .gif-result-grid {grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+}
+/* TABLET: más aire, carta central única y barra flotante táctil. */
+@media (min-width:720px) and (max-width:1099px) {
+  html body .app-shell {width:min(960px,100%)!important;max-width:960px!important;margin-inline:auto!important;}
+  html body #appView {width:100%;max-width:960px!important;padding:0 clamp(20px,3vw,34px) 120px!important;}
+  html body .masthead {height:66px;}
+  html body .bottom-nav {width:min(690px,calc(100vw - 44px));max-width:690px;bottom:calc(14px + env(safe-area-inset-bottom));}
+  html body .bottom-nav button {min-height:60px;}
+  #page-cards .page-heading {padding-top:12px!important;padding-bottom:3px!important;}
+  #page-cards .page-heading h1{font-size:clamp(31px,4vw,44px)!important;margin:0 0 7px!important;}
+  #page-cards .page-heading p:last-child {display:none!important;}
+  #page-cards .deck-bar{display:flex!important;align-items:center!important;justify-content:space-between!important;flex-wrap:wrap!important;gap:9px!important;margin:7px 0 9px!important;}
+  #page-cards #countText{flex:1 1 auto;min-width:150px;}
+  #page-cards .chrono-choice{display:flex;align-items:center;gap:7px;}
+  #page-cards .fer77-cards-add{display:inline-flex;justify-content:center;align-items:center;flex:0 0 auto;width:auto!important;min-height:42px;padding:8px 15px;border-radius:14px;background:#79364f;border:1px solid #ca9da2;color:#ffede8;font-size:13px;}
+
+  #page-cards .card-grid {--fer106-card: min(410px,57vw);display:flex!important;gap:38px!important;
+    overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;
+    gap:clamp(170px,27vw,320px)!important;
+    padding-inline:max(0px,calc((100% - var(--fer106-card))/2))!important;
+    scroll-padding-inline:max(0px,calc((100% - var(--fer106-card))/2))!important;}
+  #page-cards #cardGrid>.memory-card {flex:0 0 var(--fer106-card)!important;width:var(--fer106-card)!important;
+    height:min(540px,calc(100dvh - 360px))!important;min-height:330px;scroll-snap-align:center;}
+  #page-cards .carousel-bottom{margin:9px auto!important;}
+  #page-cards #filters{margin:8px auto 12px!important;}
+  #page-chat .chat-shell {width:min(100%,780px)!important;max-width:780px!important;
+    height:clamp(460px,calc(100dvh - 225px),850px)!important;min-height:460px!important;margin-inline:auto;}
+  .life10-tool-grid {grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .hub-menu-grid {grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .sheet {width:min(660px,calc(100% - 32px));max-height:87dvh;border-radius:23px;}
+  .overlay {align-items:center;}
+  .life10-palette-sheet {width:min(660px,100%);}
+}
+/* DESKTOP Y LAPTOP: barra de navegación izquierda, área de trabajo amplia. */
+@media (min-width:1100px) {
+  html body .app-shell {width:min(var(--fer106-content-max),calc(100vw - 180px))!important;
+    max-width:none!important;margin-left:clamp(148px,10vw,250px)!important;margin-right:auto!important;}
+  html body #appView {max-width:none!important;width:100%;padding:0 clamp(24px,2.8vw,52px) 65px!important;}
+  html body .masthead {height:68px;padding-inline:clamp(28px,4vw,90px);}
+  html body .bottom-nav {position:fixed;left:clamp(14px,2.5vw,68px)!important;right:auto!important;
+    top:clamp(94px,13dvh,140px);bottom:auto!important;margin:0!important;
+    width:112px;max-width:112px;height:auto!important;min-height:0!important;max-height:none!important;display:flex!important;flex-direction:column!important;
+    align-items:stretch!important;gap:8px;padding:12px!important;border-radius:25px;}
+  html body .bottom-nav button {flex:none!important;min-height:72px;padding:12px 5px!important;gap:5px;}
+  html body .bottom-nav .ui-icon {width:25px;height:25px;}
+  html body .bottom-nav button small {font-size:12px;}
+  #page-cards .page-heading {padding-block:25px 10px!important;}
+  #page-cards .deck-bar {display:flex!important;align-items:center;justify-content:center;gap:12px;max-width:860px;margin:8px auto 10px;}
+  #page-cards #countText{flex:1 1 120px;min-width:120px;}
+  #page-cards .fer77-cards-add{width:auto!important;min-height:42px;padding:8px 17px;display:inline-flex;align-items:center;border:1px solid #cda3ab;color:#ffede5;border-radius:14px;background:#79364f;font-size:13px;}
+  #page-cards .life10-cards-actions {justify-content:center;}
+  #page-cards .card-grid {--fer106-card: min(475px,40vw);display:flex!important;gap:50px!important;
+    overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;
+    gap:clamp(330px,28vw,500px)!important;
+    padding:10px max(0px,calc((100% - var(--fer106-card))/2)) 16px!important;
+    scroll-padding-inline:max(0px,calc((100% - var(--fer106-card))/2))!important;}
+  #page-cards #cardGrid>.memory-card {flex:0 0 var(--fer106-card)!important;width:var(--fer106-card)!important;
+    height:clamp(490px,62dvh,690px)!important;scroll-snap-align:center;}
+  #page-cards .carousel-bottom {justify-content:center;}
+  #page-chat .chat-shell {width:min(900px,100%)!important;max-width:900px!important;
+    height:clamp(520px,calc(100dvh - 175px),900px)!important;min-height:0;margin-inline:auto;}
+  #page-chat .chat-wall {overflow-y:auto!important;min-height:0;}
+  .life10-tool-grid {grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+  .hub-menu-grid {grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .quick-grid {grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .sheet {width:min(710px,calc(100% - 36px));max-height:85dvh;border-radius:24px;}
+  .overlay {align-items:center;}
+  .life10-palette-sheet {width:min(720px,100%);}
+  .hub-sheet {max-width:min(730px,92vw);}
+  html body .fab {right:clamp(42px,5vw,100px);bottom:44px;}
+}
+/* Modo horizontal de poca altura (teléfono plegable, tablet acostada, PC con ventana pequeña). */
+@media (max-height:600px) and (min-width:720px) {
+  #page-cards #cardGrid>.memory-card {height:max(310px,calc(100dvh - 180px))!important;min-height:310px;}
+  #page-chat .chat-shell {height:max(340px,calc(100dvh - 135px))!important;min-height:340px!important;}
+  #page-cards .page-heading {padding-block:5px!important;}
+  #page-cards .page-heading p:last-child {display:none;}
+  #page-cards .memory-card .memory-content {max-height:100px!important;}
+  .sheet, .hub-sheet {max-height:94dvh;}
+  body.fer77-immersive-cards, body.fer77-immersive-cards #main,
+  body.fer77-immersive-cards #appView {height:auto!important;overflow-y:auto!important;}
+  #page-cards.page.active{height:auto!important;overflow:visible!important;}
+  #page-cards #cardGrid{height:350px!important;flex:none;}
+}
+@media (prefers-reduced-motion:reduce) {html body #page-cards .memory-card-inner {transition-duration:.01ms!important}}
