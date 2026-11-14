@@ -1,0 +1,81 @@
+/* Fer & Alxs 10.7 — consolidación de scroll, sin cambios de datos. */
+/* El padding no debe cambiar cuando el indicador lateral aparece o desaparece. */
+html body:has(.edge-scroll-rail:not([hidden])) .page.active:not(#page-cards):not(#page-chat) {
+  padding-right: max(22px, env(safe-area-inset-right)) !important;
+}
+html body:has(.edge-scroll-rail:not([hidden])) #page-chat .chat-wall {
+  padding-right: 18px !important;
+}
+@media (max-width:719px) {
+  /* Las pantallas normales siempre desplazan el documento con un dedo. */
+  html:has(body:not(.fer77-immersive-cards):not(.fer77-immersive-chat)) { height:auto!important;overflow-y:auto!important; }
+  body:not(.fer77-immersive-cards):not(.fer77-immersive-chat):not(.life10-modal-open) {
+    position:static!important; height:auto!important; min-height:100dvh!important;
+    overflow-y:auto!important;overscroll-behavior-y:auto!important;touch-action:pan-y pinch-zoom!important;
+  }
+  body:not(.fer77-immersive-cards):not(.fer77-immersive-chat):not(.life10-modal-open) :is(#main,#appView) {
+    height:auto!important; overflow:visible!important;
+  }
+  body:not(.fer77-immersive-cards):not(.fer77-immersive-chat) .page.active {
+    height:auto!important;max-height:none!important;overflow:visible!important;
+  }
+  /* Chat como pantalla propia: su historial es la única región con scroll. */
+  html:has(body.fer77-immersive-chat) {overflow:hidden!important;height:100%!important;}
+  body.fer77-immersive-chat:not(.life10-modal-open) {
+    overflow:hidden!important;height:100dvh!important;overscroll-behavior:none!important;
+  }
+  body.fer77-immersive-chat :is(#main,#appView) {
+    min-height:0!important;height:auto!important;overflow:visible!important;
+  }
+  html body.fer77-immersive-chat:not(.life10-modal-open) #page-chat.page.active {
+    display:flex!important;flex-direction:column!important;min-height:0!important;
+    height:calc(100dvh - 54px - 84px - env(safe-area-inset-bottom))!important;
+    max-height:calc(100dvh - 54px - 84px - env(safe-area-inset-bottom))!important;
+    padding:3px 8px 4px!important;overflow:hidden!important;
+  }
+  html body.fer77-immersive-chat #page-chat .chat-shell {
+    flex:1 1 auto!important;height:100%!important;min-height:0!important;max-height:100%!important;
+    display:flex!important;flex-direction:column!important;overflow:hidden!important;
+  }
+  body.fer77-immersive-chat #page-chat .chat-wall {
+    flex:1 1 auto!important;min-height:0!important;max-height:none!important;
+    overflow-x:hidden!important;overflow-y:auto!important;
+    overscroll-behavior-y:contain!important;touch-action:pan-y pinch-zoom!important;
+    -webkit-overflow-scrolling:touch;
+  }
+  body.fer77-immersive-chat #page-chat :is(.chat-bar,.chat-compose,.chat-reply-bar) {flex-shrink:0!important;}
+  /* Padding derecho estable: la barra flotante no mueve el contenido al activarse. */
+  html body #page-play.page.active,
+  html body #page-hub.page.active,
+  html body #page-more.page.active,
+  html body #page-flash.page.active { padding-right:24px!important; }
+  html body #page-chat .chat-wall {padding-right:18px!important;}
+  .edge-scroll-rail {width:22px!important;right:max(2px,env(safe-area-inset-right))!important;opacity:.75;}
+  .edge-scroll-rail button {width:18px;height:28px;font-size:16px;}
+  .edge-scroll-track {width:18px;}
+  .edge-scroll-thumb {width:13px;left:2px;}
+  .edge-scroll-track:before {left:7px;width:4px;}
+}
+@media (min-width:720px) {
+  /* Tablets / escritorio: scroll natural en las áreas largas. */
+  body:not(.life10-modal-open):not(.fer77-immersive-cards) {overflow-y:auto!important;height:auto!important;}
+  body:not(.life10-modal-open):not(.fer77-immersive-cards) .page.active:not(#page-chat) {overflow-y:visible!important;}
+  #page-chat .chat-wall {overflow-y:auto!important;overscroll-behavior:contain;}
+}
+/* No modificar las dimensiones de las tarjetas ni bloquear su swipe horizontal. */
+#page-cards #cardGrid {touch-action:pan-x!important;}
+#page-cards .memory-card .meta-list {touch-action:pan-y!important;}
+/* Barra accesible, sin superposición de un área táctil grande. */
+.edge-scroll-rail {position:fixed;z-index:180;right:max(4px,env(safe-area-inset-right));top:clamp(80px,15dvh,130px);
+ bottom:calc(96px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:5px;
+ width:25px;padding:4px 1px;border:1px solid rgba(227,182,185,.3);border-radius:18px;
+ background:rgba(55,18,36,.9);box-shadow:0 6px 20px rgba(0,0,0,.3);touch-action:none;}
+.edge-scroll-rail[hidden]{display:none!important}
+.edge-scroll-rail button{background:rgba(240,200,210,.1);border:0;border-radius:9px;color:#f8d7c2;width:21px;height:28px;cursor:pointer;font-size:16px;touch-action:manipulation;}
+.edge-scroll-track{position:relative;flex:1;min-height:38px;width:21px;touch-action:none;cursor:ns-resize;border-radius:10px;}
+.edge-scroll-track:before{content:"";position:absolute;top:0;bottom:0;left:9px;width:3px;border-radius:4px;background:rgba(240,200,210,.2)}
+.edge-scroll-thumb{position:absolute;top:0;left:3px;width:15px;min-height:38px;border:1px solid #ebcaa6;
+ border-radius:10px;background:linear-gradient(180deg,#e9cba8,#b27c92);touch-action:none;will-change:transform;}
+@media (min-width:1100px){.edge-scroll-rail{right:14px;top:90px;bottom:32px;opacity:.55}.edge-scroll-rail:hover{opacity:.9}}
+@media (max-height:550px){.edge-scroll-rail{top:59px;bottom:68px}}
+@media (prefers-reduced-motion:reduce){.edge-scroll-rail{transition:none}}
