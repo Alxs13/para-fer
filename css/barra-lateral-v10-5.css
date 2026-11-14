@@ -1,0 +1,52 @@
+/* Fer & Alxs Life OS 10.5 — barra lateral accesible y arrastrable. */
+@media (max-width: 719px) {
+  html:has(#appView:not(.hidden)):not(:has(body.fer77-immersive-cards)) {overflow-y:auto!important}
+  body:not(.fer77-immersive-cards):not(.life10-modal-open) {
+    overflow-y:auto!important;
+    height:auto!important;
+    min-height:100dvh!important;
+    touch-action:pan-y pinch-zoom!important;
+  }
+  body:not(.fer77-immersive-cards):not(.life10-modal-open) #main,
+  body:not(.fer77-immersive-cards):not(.life10-modal-open) #appView {overflow:visible!important;height:auto!important;}
+  /* El historial del chat conserva su propio desplazamiento. */
+  #page-chat .chat-wall {overflow-y:auto!important;touch-action:pan-y pinch-zoom!important;}
+}
+.edge-scroll-rail {
+  position:fixed; z-index:180;
+  right:max(3px,env(safe-area-inset-right));
+  top:clamp(94px,17dvh,148px);
+  bottom:calc(91px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  width:28px; padding:4px 1px;
+  border:1px solid rgba(227,182,185,.33);
+  border-radius:20px;
+  background:linear-gradient(180deg,rgba(41,10,27,.86),rgba(70,24,45,.92));
+  box-shadow:0 8px 20px rgba(12,1,9,.26);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  opacity:.93; transition:opacity .18s;
+  pointer-events:auto; touch-action:none;
+}
+.edge-scroll-rail[hidden] {display:none!important}
+.edge-scroll-rail button {
+  appearance:none; border:0; background:rgba(225,177,187,.13);
+  color:#ffe4d2; width:23px; height:30px; border-radius:12px;
+  display:grid;place-items:center;cursor:pointer;padding:0;
+  font:700 20px/1 sans-serif; touch-action:manipulation;
+}
+.edge-scroll-rail button:active {background:rgba(228,190,146,.3)}
+.edge-scroll-track {position:relative;flex:1;min-height:32px;width:23px;
+  touch-action:none;cursor:ns-resize;border-radius:14px;}
+.edge-scroll-track:before {content:'';position:absolute;left:9px;top:0;bottom:0;width:5px;
+  border-radius:9px;background:rgba(244,211,203,.18)}
+.edge-scroll-thumb {position:absolute;left:3px;top:0;width:17px;min-height:42px;
+  border:1px solid #f3d3a8;border-radius:15px;
+  background:linear-gradient(180deg,#f0cda8,#b8819a);
+  box-shadow:0 2px 12px rgba(0,0,0,.35),0 0 0 2px rgba(20,2,12,.22);
+  touch-action:none;will-change:transform;}
+.edge-scroll-thumb:before {content:'≡';position:absolute;inset:0;display:grid;place-items:center;
+  color:#58263a;font:700 12px sans-serif;transform:rotate(90deg)}
+.edge-scroll-rail:focus-within {outline:2px solid #f3d3a8;outline-offset:2px}
+@media (min-width: 720px) {.edge-scroll-rail {display:none!important}}
+@media (max-height: 530px) {.edge-scroll-rail {top:64px;bottom:74px}.edge-scroll-rail button {height:22px}}
+@media (prefers-reduced-motion:reduce) {.edge-scroll-rail {transition:none}}
